@@ -1,42 +1,45 @@
 # Durin
 
-Durin is an AI-assisted payment workspace for merchants who need to pay
-suppliers without turning payment approval into a blind leap of faith.
+Durin is an AI-assisted financial operations workspace for merchants who need to
+understand their PayPal activity, reconcile it with invoices and payment terms,
+and keep payment authorization under explicit human control.
 
 The name references the Doors of Durin: they open only when the correct word is
-known. In Durin, a payment request does not open the payment flow merely because
-someone asked for it. The request must satisfy the merchant's authorization
-conditions before PayPal can be used.
+known. In Durin, an operation does not become reconciled merely because an email,
+an invoice, or an AI explanation says that it happened. The evidence and the
+merchant's rules must support the conclusion before PayPal activity is treated
+as financially matched.
 
 ## The merchant problem
 
-Small and mid-sized merchants receive invoices through email, documents, and
-messages. Before paying, someone has to answer questions that are easy to miss
-under time pressure:
+Small and mid-sized merchants receive invoices, contracts, and payment
+communications in different places while PayPal records the resulting activity
+separately. They have to answer questions that are easy to miss under time
+pressure:
 
-- Is this invoice new or a duplicate?
-- Does the supplier and amount match the merchant's records?
-- Is the request within the merchant's approval policy?
-- What evidence supports the payment?
-- What happened after the payment was authorized?
+- Does this issued invoice have a corresponding PayPal operation?
+- Was the operation completed, refunded, disputed, or left pending?
+- Do the amount, currency, customer, and invoice reference match?
+- What fees and reversals affect the period's result?
+- Which conclusions require human review?
 
-The payment button is not the difficult part. The difficult part is preparing a
-payment that a merchant can understand, authorize, and later explain.
+The payment button is not the difficult part. The difficult part is knowing
+whether the obligation, PayPal operation, and money movement actually match.
 
 ## What Durin does
 
-Durin gives a merchant one controlled workflow:
+Durin gives a merchant one controlled operations workflow:
 
-1. The agent collects invoices, supplier context, and the merchant's policy.
-2. The MCP exposes bounded tools for reading, comparison, and preparation.
-3. Deterministic automation checks duplicates, recipients, amounts, limits, and
-   missing evidence.
-4. The agent explains the proposed payment and the reasons behind every exception.
-5. The merchant reviews the proposal and explicitly authorizes the payment.
-6. PayPal Sandbox processes the authorized payment and the result is recorded for
-   reconciliation.
+1. The agent collects authorized invoices, contracts, communications, and policy.
+2. The MCP exposes bounded tools for reading and comparison.
+3. AI extracts candidate facts with source evidence and review requirements.
+4. Deterministic automation matches obligations with PayPal operations.
+5. Durin reports completed, pending, refunded, unmatched, and ambiguous cases.
+6. The merchant reviews any operation that requires approval; PayPal remains the
+   source of provider activity.
 
-The agent prepares the work. The merchant remains the authority for moving money.
+The agent prepares and explains the work. The merchant remains the authority for
+any monetary action.
 Durin has no blockchain, smart contracts, cryptocurrency, wallet, or independent
 on-chain verifier.
 
@@ -48,10 +51,10 @@ important decision visible:
 
 | Before Durin | With Durin |
 | --- | --- |
-| Search across invoices and messages | One proposed payment workspace |
-| Manually compare supplier details | Deterministic comparison and exception reasons |
-| Trust an opaque recommendation | Evidence and policy checks shown before approval |
-| Lose track of the post-payment result | PayPal status available for reconciliation |
+| Search across invoices, contracts, and messages | One evidence-backed operations workspace |
+| Manually compare documents with PayPal activity | Deterministic matching and exception reasons |
+| Trust an opaque recommendation | Source evidence and review state for every conclusion |
+| Lose track of fees, refunds, and pending operations | PayPal activity reconciled by period |
 
 ## AI and authorization boundary
 
@@ -67,13 +70,14 @@ sequenceDiagram
     participant X as Deterministic checks
     participant P as PayPal Sandbox
 
-    M->>A: Provide invoices and policy
-    A->>X: Submit structured observations
-    X-->>A: Proposal, checks, and exceptions
-    A-->>M: Explain the proposed payment
-    M->>P: Explicitly authorize payment
-    P-->>M: Payment status
-    P-->>A: Result for reconciliation
+    M->>A: Provide authorized business sources
+    A->>X: Submit extracted observations
+    X->>P: Read PayPal operations
+    P-->>X: Provider states and amounts
+    X-->>A: Reconciliation and exceptions
+    A-->>M: Explain the report
+    M->>P: Explicitly authorize a later action
+    P-->>M: Provider status
 ```
 
 The MCP is an interface for bounded capabilities, not a replacement for the
@@ -95,28 +99,33 @@ official developer documentation is the source of truth for API behavior:
 
 ### In scope
 
-- Merchant payment preparation and review.
-- Invoice and supplier observations.
-- Deterministic policy and duplicate checks.
+- Merchant financial operations and reconciliation.
+- `RECEIVABLE` invoices and PayPal collections as the first complete flow.
+- Invoice, contract, and communication observations.
+- Deterministic matching, balances, and duplicate checks.
 - MCP tools for the agent.
-- PayPal Sandbox order and payment status integration.
+- PayPal Sandbox operation and status integration.
 - Audit-friendly operational records.
-- A runnable web application and clear setup instructions.
+- Explainable period reports.
 
 ### Out of scope
 
 - Blockchain or smart-contract payments.
 - Wallets, tokens, RPCs, and on-chain verification.
 - An AI-controlled private key or unattended payment capture.
-- An independent blockchain proof portal.
+- `PAYABLE` until the receivable domain and the relevant PayPal capability are established.
 - A full accounting replacement.
 
 ## Repository status
 
-Durin is being rebuilt as a standalone application. The first implementation
-priority is the merchant backend: MCP, agent capabilities, deterministic
-automation, and PayPal integration. Frontend code will be selected and added
-later from the repositories designated for this project.
+Durin is being rebuilt as a standalone application. The first complete financial
+domain is `RECEIVABLE`; `PAYABLE` is a separate later domain. The current
+implementation priority is MCP, agent capabilities, deterministic automation,
+provenance, reconciliation, and then PayPal integration. Frontend code will be
+selected and added later from the repositories designated for this project.
+
+See [construction levels](docs/CONSTRUCTION_LEVELS.md) for the destination,
+cross-level contracts, adversarial gates, and open constraints.
 
 ## Development
 
