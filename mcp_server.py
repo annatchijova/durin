@@ -1,0 +1,232 @@
+"""Durin's bounded MCP surface for merchant payment preparation.
+
+The server reads untrusted invoice data, applies a merchant policy, and returns
+an explainable proposal. It has no payment, capture, credential, or signing tool.
+The eventual PayPal adapter will live behind the explicit merchant approval step.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any
+
+from mcp.server.fastmcp import FastMCP
+
+
+mcp = FastMCP("durin-merchant-automation")
+
+MAX_POLICY_BYTES = 64_000
+MAX_INVOICE_FILE_BYTES = 1_000_000
+MAX_INVOICES = 500
+MAX_FIELD_LENGTH = 256
+MAX_DECIMAL_DIGITS = 40
+INVOICE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,99}$")
+
+
+def _error(code: str, message: str, **extra: Any) -> dict[str, Any]:
+    return {"ok": False, "error": code, "message": message, **extra}
+
+
+def _text(value: Any, field: str, *, required: bool = True) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{field} must be a string")
+    if len(value) > MAX_FIELD_LENGTH:
+        raise ValueError(f"{field} exceeds the length limit")
+    value = value.strip()
+    if required and not value:
+        raise ValueError(f"{field} is required")
+    return value
+
+
+def _amount(value: Any, field: str = "amount", *, allow_zero: bool = False) -> Decimal:
+    raw = _text(value, field)
+    if len(raw) > MAX_DECIMAL_DIGITS or not re.fullmatch(r"\d+(?:\.\d{1,4})?", raw):
+        raise ValueError(f"{field} must be a positive decimal amount")
+    try:
+        parsed = Decimal(raw)
+    except InvalidOperation as exc:
+        raise ValueError(f"{field} is not a valid decimal amount") from exc
+    if parsed < 0 or (parsed == 0 and not allow_zero):
+        raise ValueError(f"{field} must be {'non-negative' if allow_zero else 'greater than zero'}")
+    return parsed
+
+
+def _money(value: Decimal) -> str:
+    return format(value.quantize(Decimal("0.01")), "f")
+
+
+def _distance_one_or_two(left: str, right: str) -> int | None:
+    if len(left) != len(right):
+        return None
+    distance = sum(a != b for a, b in zip(left.casefold(), right.casefold()))
+    return distance if 1 <= distance <= 2 else None
+
+
+def _load_policy() -> dict[str, Any]:
+    raw = os.environ.get("DURIN_POLICY_JSON", "")
+    if len(raw.encode("utf-8")) > MAX_POLICY_BYTES:
+        raise ValueError("DURIN_POLICY_JSON exceeds the size limit")
+    if not raw:
+        return {
+            "merchantName": "Demo merchant",
+            "baseCurrency": "USD",
+            "maxAmountPerPayment": "10000.00",
+            "maxAmountPerBatch": "50000.00",
+            "approvalRequiredAbove": "0.00",
+            "approvedRecipients": [],
+        }
+    policy = json.loads(raw)
+    if not isinstance(policy, dict):
+        raise ValueError("DURIN_POLICY_JSON must contain an object")
+    normalized = {
+        "merchantName": _text(policy.get("merchantName", "Merchant"), "merchantName"),
+        "baseCurrency": _text(policy.get("baseCurrency", "USD"), "baseCurrency").upper(),
+        "maxAmountPerPayment": _money(_amount(policy.get("maxAmountPerPayment", "10000.00"), "maxAmountPerPayment")),
+        "maxAmountPerBatch": _money(_amount(policy.get("maxAmountPerBatch", "50000.00"), "maxAmountPerBatch")),
+        "approvalRequiredAbove": _money(_amount(policy.get("approvalRequiredAbove", "0.00"), "approvalRequiredAbove", allow_zero=True)),
+        "approvedRecipients": [],
+    }
+    recipients = policy.get("approvedRecipients", [])
+    if not isinstance(recipients, list) or len(recipients) > MAX_INVOICES:
+        raise ValueError("approvedRecipients must be a bounded array")
+    normalized["approvedRecipients"] = [_text(item, "approved recipient") for item in recipients]
+    if Decimal(normalized["approvalRequiredAbove"]) > Decimal(normalized["maxAmountPerPayment"]):
+        raise ValueError("approvalRequiredAbove cannot exceed maxAmountPerPayment")
+    if Decimal(normalized["maxAmountPerPayment"]) > Decimal(normalized["maxAmountPerBatch"]):
+        raise ValueError("maxAmountPerPayment cannot exceed maxAmountPerBatch")
+    return normalized
+
+
+def _invoice_identity(invoice: dict[str, Any]) -> tuple[str, str, str, str]:
+    supplier = _text(invoice.get("supplier"), "supplier").casefold()
+    number = _text(invoice.get("invoiceNumber"), "invoiceNumber").casefold()
+    currency = _text(invoice.get("currency", "USD"), "currency").upper()
+    amount = _money(_amount(invoice.get("amount")))
+    return supplier, number, currency, amount
+
+
+@mcp.tool()
+def get_agent_capabilities() -> dict[str, Any]:
+    """Describe the bounded capabilities exposed to an agent."""
+    return {
+        "ok": True,
+        "agent": "durin-merchant-automation",
+        "can": ["read_policy", "read_invoices", "find_duplicates", "prepare_payment_proposal"],
+        "cannot": ["approve_payment", "capture_payment", "send_money", "read_secrets"],
+        "approvalBoundary": "A merchant must explicitly authorize any payment action.",
+    }
+
+
+@mcp.tool()
+def get_business_policy() -> dict[str, Any]:
+    """Return the merchant policy without exposing credentials."""
+    try:
+        return {"ok": True, "policy": _load_policy()}
+    except (ValueError, json.JSONDecodeError) as exc:
+        return _error("invalid_policy", str(exc))
+
+
+@mcp.tool()
+def list_invoices() -> dict[str, Any]:
+    """Load optional local invoice observations; missing data is explicit."""
+    path_value = os.environ.get("DURIN_INVOICES_PATH")
+    if not path_value:
+        return {"ok": True, "available": False, "invoices": [], "reason": "DURIN_INVOICES_PATH is not configured"}
+    path = Path(path_value).expanduser()
+    try:
+        if path.stat().st_size > MAX_INVOICE_FILE_BYTES:
+            return _error("invalid_invoices", "invoice fixture exceeds the byte limit")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, list) or len(data) > MAX_INVOICES:
+            return _error("invalid_invoices", "invoice fixture must be a bounded JSON array")
+        return {"ok": True, "available": True, "invoices": data}
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return _error("invalid_invoices", str(exc))
+
+
+@mcp.tool()
+def find_possible_duplicates(invoices: list[dict[str, Any]]) -> dict[str, Any]:
+    """Find repeated invoice identities without deciding whether they are fraud."""
+    if not isinstance(invoices, list) or len(invoices) > MAX_INVOICES:
+        return _error("duplicate_check_failed", "invoices must be a bounded array")
+    groups: dict[tuple[str, str, str, str], list[str]] = {}
+    try:
+        for index, invoice in enumerate(invoices):
+            if not isinstance(invoice, dict):
+                return _error("duplicate_check_failed", f"invoice {index} must be an object")
+            invoice_id = _text(invoice.get("invoiceId", f"row-{index}"), "invoiceId")
+            groups.setdefault(_invoice_identity(invoice), []).append(invoice_id)
+    except ValueError as exc:
+        return _error("duplicate_check_failed", str(exc))
+    duplicates = [{"identity": list(identity), "invoiceIds": ids} for identity, ids in groups.items() if len(ids) > 1]
+    return {"ok": True, "duplicates": duplicates, "duplicateCount": sum(len(item["invoiceIds"]) for item in duplicates)}
+
+
+@mcp.tool()
+def create_payment_proposal(invoices: list[dict[str, Any]]) -> dict[str, Any]:
+    """Prepare a deterministic, review-only payment proposal."""
+    try:
+        if not isinstance(invoices, list) or len(invoices) > MAX_INVOICES:
+            return _error("proposal_failed", "invoices must be a bounded array")
+        policy = _load_policy()
+        approved = {value.casefold() for value in policy["approvedRecipients"]}
+        max_payment = Decimal(policy["maxAmountPerPayment"])
+        max_batch = Decimal(policy["maxAmountPerBatch"])
+        approval_threshold = Decimal(policy["approvalRequiredAbove"])
+        seen: set[tuple[str, str, str, str]] = set()
+        accepted: list[dict[str, Any]] = []
+        excluded: list[dict[str, Any]] = []
+        total = Decimal("0")
+        for index, invoice in enumerate(invoices):
+            if not isinstance(invoice, dict):
+                return _error("proposal_failed", f"invoice {index} must be an object")
+            invoice_id = _text(invoice.get("invoiceId"), "invoiceId")
+            if not INVOICE_ID_RE.fullmatch(invoice_id):
+                return _error("proposal_failed", "invoiceId has an invalid format")
+            recipient = _text(invoice.get("recipient"), "recipient")
+            amount = _amount(invoice.get("amount"))
+            currency = _text(invoice.get("currency", policy["baseCurrency"]), "currency").upper()
+            supplier = _text(invoice.get("supplier"), "supplier")
+            number = _text(invoice.get("invoiceNumber"), "invoiceNumber")
+            identity = (supplier.casefold(), number.casefold(), currency, _money(amount))
+            reasons: list[str] = []
+            if identity in seen:
+                reasons.append("POSSIBLE_DUPLICATE")
+            seen.add(identity)
+            if approved and recipient.casefold() not in approved:
+                candidates = [
+                    {"recipient": candidate, "distance": distance}
+                    for candidate in policy["approvedRecipients"]
+                    if (distance := _distance_one_or_two(recipient, candidate)) is not None
+                ]
+                reasons.append("POSSIBLE_TYPO" if len(candidates) == 1 else "RECIPIENT_NOT_APPROVED")
+            if amount > max_payment:
+                reasons.append("EXCEEDS_PER_PAYMENT_LIMIT")
+            if total + amount > max_batch:
+                reasons.append("EXCEEDS_BATCH_LIMIT")
+            item = {"invoiceId": invoice_id, "supplier": supplier, "invoiceNumber": number, "recipient": recipient, "amount": _money(amount), "currency": currency}
+            if reasons:
+                excluded.append({**item, "action": "EXCLUDED", "reasons": reasons})
+                continue
+            total += amount
+            accepted.append({**item, "action": "READY_FOR_REVIEW", "approvalRequired": amount >= approval_threshold})
+        return {
+            "ok": True,
+            "merchant": policy["merchantName"],
+            "accepted": accepted,
+            "excluded": excluded,
+            "totalAmount": _money(total),
+            "currency": policy["baseCurrency"],
+            "execution": "NO_PAYMENT_SUBMITTED",
+            "humanApprovalRequired": True,
+        }
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        return _error("proposal_failed", str(exc))
+
+
+if __name__ == "__main__":
+    mcp.run()
