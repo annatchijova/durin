@@ -18,6 +18,10 @@ HTTP requests.
 - An uncertain outcome requires lookup by batch identity before any recovery
   action. The module never performs a blind duplicate payout.
 - `NOT_SUBMITTED` is the only execution state emitted by the offline builder.
+- Provider evidence is recorded before interpretation. An unparseable amount,
+  unsupported currency, or exact amount mismatch becomes
+  `RECONCILIATION_REQUIRED`; it is never discarded and never posted as if it
+  matched.
 
 The future Sandbox adapter must keep OAuth credentials outside the MCP agent
 and outside the repository. The current test suite uses only synthetic
