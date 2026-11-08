@@ -68,6 +68,9 @@ OAuth credentials only at runtime, bounds responses, and exposes create/query
 methods without registering them as MCP tools. The caller must still enforce
 the approval digest and persist the request identity before invoking it.
 
+Run `python3 scripts/paypal_preflight.py` after loading `.env` to validate the
+required Sandbox configuration without network access or transaction submission.
+
 The request and recovery rules follow PayPal's official Payouts API reference:
 
 - [Create payout request](https://developer.paypal.com/api/payments.payouts-batch/v1/definitions/create_payout_request/)

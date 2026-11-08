@@ -132,10 +132,20 @@ cross-level contracts, adversarial gates, and open constraints.
 
 ## Development
 
-Setup instructions, environment variables, tests, and the local PayPal Sandbox
-workflow will be added as each backend module is introduced. Until then, this
-README defines the product boundary and authorization model; it does not claim
-that an unfinished integration is already available.
+The offline PayPal client, durable authorization ledger, recovery path, and
+configuration preflight are available. Run the preflight before any authorized
+Sandbox execution:
+
+```shell
+set -a
+. ./.env
+set +a
+python3 scripts/paypal_preflight.py
+```
+
+The preflight performs no network request and sends no transaction. Live
+Sandbox execution still requires explicit merchant authorization and provider
+lookup/recovery handling.
 
 ## License
 
