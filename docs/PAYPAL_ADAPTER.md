@@ -27,6 +27,12 @@ The future Sandbox adapter must keep OAuth credentials outside the MCP agent
 and outside the repository. The current test suite uses only synthetic
 responses; it does not claim that a payout occurred.
 
+`paypal_client.py` contains the application-side Sandbox client. It is
+fail-closed to `api-m.sandbox.paypal.com` or loopback test endpoints, requires
+OAuth credentials only at runtime, bounds responses, and exposes create/query
+methods without registering them as MCP tools. The caller must still enforce
+the approval digest and persist the request identity before invoking it.
+
 The request and recovery rules follow PayPal's official Payouts API reference:
 
 - [Create payout request](https://developer.paypal.com/api/payments.payouts-batch/v1/definitions/create_payout_request/)
