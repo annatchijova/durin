@@ -82,6 +82,8 @@ be evaluated. An invoice whose due date is before that observation timestamp
 gets the explicit `OVERDUE` reason unless a recognized successful operation is
 already present. Partial provider operations become `PARTIALLY_MATCHED`, and
 pending provider states remain explicit `PENDING_OPERATION` exceptions.
+The batch also flags conflicting supplier identities and contradictory amount
+or currency facts for the same invoice number; it never chooses one silently.
 
 ## Input shape
 

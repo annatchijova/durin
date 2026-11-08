@@ -218,6 +218,24 @@ def analyze_supplier_batch(
         preflight_supplier(invoice, policy=policy, operations=operations, seen=seen, observed_date=observed_date)
         for invoice in invoices
     ]
+    suppliers_by_number: dict[str, set[str]] = defaultdict(set)
+    facts_by_supplier_number: dict[tuple[str, str], set[tuple[str, str]]] = defaultdict(set)
+    for row in rows:
+        number = row["invoiceNumber"].casefold()
+        supplier = row["supplier"].casefold()
+        suppliers_by_number[number].add(supplier)
+        facts_by_supplier_number[(supplier, number)].add((row["amount"], row["currency"]))
+    for row in rows:
+        number = row["invoiceNumber"].casefold()
+        supplier = row["supplier"].casefold()
+        if len(suppliers_by_number[number]) > 1:
+            row["reasons"].append("CONFLICTING_SUPPLIER_IDENTITY")
+            row["checks"].append({"key": "supplier_identity", "status": "fail", "detail": "invoice number belongs to multiple suppliers"})
+        if len(facts_by_supplier_number[(supplier, number)]) > 1:
+            row["reasons"].append("CONFLICTING_INVOICE_FACTS")
+            row["checks"].append({"key": "invoice_facts", "status": "fail", "detail": "supplier and invoice number have conflicting amount or currency"})
+        if row["reasons"]:
+            row["status"] = "EXCLUDED"
     reason_counts = Counter(reason for row in rows for reason in row["reasons"])
     amounts = defaultdict(lambda: Decimal("0"))
     for row in rows:

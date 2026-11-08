@@ -17,6 +17,8 @@ REASON_TEXT = {
     "OPERATION_MISMATCH": "A provider operation was found, but its amount or currency does not match.",
     "PARTIAL_OPERATION": "A provider operation covers only part of the obligation; the remaining amount is unresolved.",
     "PENDING_OPERATION": "A provider operation exists but its provider status is not final.",
+    "CONFLICTING_SUPPLIER_IDENTITY": "The same invoice number appears under different supplier identities.",
+    "CONFLICTING_INVOICE_FACTS": "The same supplier and invoice number have conflicting amount or currency facts.",
     "OVERDUE": "The obligation passed its due date without a recognized successful settlement.",
 }
 

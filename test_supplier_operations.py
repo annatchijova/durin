@@ -81,6 +81,20 @@ class SupplierOperationsTests(unittest.TestCase):
         result = analyze_supplier_batch([item], operations, policy=POLICY, observed_at="2026-11-08T12:00:00Z")
         self.assertNotIn("OVERDUE", result["rows"][0]["reasons"])
 
+    def test_same_number_under_different_suppliers_requires_review(self):
+        first = invoice(number="SHARED-1")
+        second = invoice(invoice_id="INV-2", number="SHARED-1")
+        second["supplier"] = "Different Supplier"
+        result = analyze_supplier_batch([first, second], [], policy=POLICY)
+        self.assertTrue(all("CONFLICTING_SUPPLIER_IDENTITY" in row["reasons"] for row in result["rows"]))
+        self.assertEqual(result["metrics"]["reasonCounts"]["CONFLICTING_SUPPLIER_IDENTITY"], 2)
+
+    def test_same_supplier_number_with_conflicting_facts_requires_review(self):
+        first = invoice(number="CONFLICT-1", amount="100.00")
+        second = invoice(invoice_id="INV-2", number="CONFLICT-1", amount="110.00")
+        result = analyze_supplier_batch([first, second], [], policy=POLICY)
+        self.assertTrue(all("CONFLICTING_INVOICE_FACTS" in row["reasons"] for row in result["rows"]))
+
 
 if __name__ == "__main__":
     unittest.main()
