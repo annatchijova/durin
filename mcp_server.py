@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from automation import prepare_proposal
 
 
 mcp = FastMCP("durin-merchant-automation")
@@ -168,62 +169,11 @@ def find_possible_duplicates(invoices: list[dict[str, Any]]) -> dict[str, Any]:
 
 @mcp.tool()
 def create_payment_proposal(invoices: list[dict[str, Any]]) -> dict[str, Any]:
-    """Prepare a deterministic, review-only payment proposal."""
+    """Return the pure automation engine's review-only payment proposal."""
     try:
-        if not isinstance(invoices, list) or len(invoices) > MAX_INVOICES:
-            return _error("proposal_failed", "invoices must be a bounded array")
         policy = _load_policy()
-        approved = {value.casefold() for value in policy["approvedRecipients"]}
-        max_payment = Decimal(policy["maxAmountPerPayment"])
-        max_batch = Decimal(policy["maxAmountPerBatch"])
-        approval_threshold = Decimal(policy["approvalRequiredAbove"])
-        seen: set[tuple[str, str, str, str]] = set()
-        accepted: list[dict[str, Any]] = []
-        excluded: list[dict[str, Any]] = []
-        total = Decimal("0")
-        for index, invoice in enumerate(invoices):
-            if not isinstance(invoice, dict):
-                return _error("proposal_failed", f"invoice {index} must be an object")
-            invoice_id = _text(invoice.get("invoiceId"), "invoiceId")
-            if not INVOICE_ID_RE.fullmatch(invoice_id):
-                return _error("proposal_failed", "invoiceId has an invalid format")
-            recipient = _text(invoice.get("recipient"), "recipient")
-            amount = _amount(invoice.get("amount"))
-            currency = _text(invoice.get("currency", policy["baseCurrency"]), "currency").upper()
-            supplier = _text(invoice.get("supplier"), "supplier")
-            number = _text(invoice.get("invoiceNumber"), "invoiceNumber")
-            identity = (supplier.casefold(), number.casefold(), currency, _money(amount))
-            reasons: list[str] = []
-            if identity in seen:
-                reasons.append("POSSIBLE_DUPLICATE")
-            seen.add(identity)
-            if approved and recipient.casefold() not in approved:
-                candidates = [
-                    {"recipient": candidate, "distance": distance}
-                    for candidate in policy["approvedRecipients"]
-                    if (distance := _distance_one_or_two(recipient, candidate)) is not None
-                ]
-                reasons.append("POSSIBLE_TYPO" if len(candidates) == 1 else "RECIPIENT_NOT_APPROVED")
-            if amount > max_payment:
-                reasons.append("EXCEEDS_PER_PAYMENT_LIMIT")
-            if total + amount > max_batch:
-                reasons.append("EXCEEDS_BATCH_LIMIT")
-            item = {"invoiceId": invoice_id, "supplier": supplier, "invoiceNumber": number, "recipient": recipient, "amount": _money(amount), "currency": currency}
-            if reasons:
-                excluded.append({**item, "action": "EXCLUDED", "reasons": reasons})
-                continue
-            total += amount
-            accepted.append({**item, "action": "READY_FOR_REVIEW", "approvalRequired": amount >= approval_threshold})
-        return {
-            "ok": True,
-            "merchant": policy["merchantName"],
-            "accepted": accepted,
-            "excluded": excluded,
-            "totalAmount": _money(total),
-            "currency": policy["baseCurrency"],
-            "execution": "NO_PAYMENT_SUBMITTED",
-            "humanApprovalRequired": True,
-        }
+        proposal = prepare_proposal(invoices, policy)
+        return {"ok": True, "merchant": policy["merchantName"], **proposal}
     except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         return _error("proposal_failed", str(exc))
 
