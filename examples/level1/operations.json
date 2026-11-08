@@ -1,0 +1,9 @@
+[
+  {
+    "operationId": "OP-1001",
+    "invoiceId": "INV-1001",
+    "amount": "750.00",
+    "currency": "USD",
+    "status": "SUCCESS"
+  }
+]

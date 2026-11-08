@@ -42,6 +42,26 @@ export DURIN_INVOICES_PATH=/absolute/path/to/invoices.json
 Invoice observations are untrusted input. A missing fixture is reported as
 unavailable rather than treated as an empty, successful review.
 
+## Generate the Level 1 report
+
+The offline supplier operations desk can be exercised end to end with the
+tracked fixtures:
+
+```shell
+python3 scripts/run_level1_report.py \
+  --policy examples/level1/policy.json \
+  --invoices examples/level1/invoices.json \
+  --operations examples/level1/operations.json \
+  --report /tmp/durin-level1-report.json \
+  --report-id level1-demo \
+  --observed-at 2026-11-08T12:00:00Z
+```
+
+The report contains the `PAYABLE` flow, source hashes, supplier rows, exact
+metrics, exception reasons, and `NO_PAYMENT_SUBMITTED`. The example deliberately
+contains a duplicate, a possible recipient typo, and an over-limit obligation so
+the report demonstrates the exception path rather than a uniform green result.
+
 ## Input shape
 
 ```json

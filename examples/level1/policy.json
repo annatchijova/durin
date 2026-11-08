@@ -1,0 +1,11 @@
+{
+  "merchantName": "Durin Demo Merchant",
+  "baseCurrency": "USD",
+  "maxAmountPerPayment": "1000.00",
+  "maxAmountPerBatch": "2500.00",
+  "approvalRequiredAbove": "0.00",
+  "approvedRecipients": [
+    "supplier@example.com",
+    "logistics@example.com"
+  ]
+}

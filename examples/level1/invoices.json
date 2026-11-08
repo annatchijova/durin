@@ -1,0 +1,35 @@
+[
+  {
+    "invoiceId": "INV-1001",
+    "supplier": "Acme Supplies",
+    "invoiceNumber": "ACME-1001",
+    "recipient": "supplier@example.com",
+    "amount": "750.00",
+    "currency": "USD",
+    "dueDate": "2026-11-20",
+    "history": [
+      {"amount": "700.00", "currency": "USD"},
+      {"amount": "720.00", "currency": "USD"}
+    ]
+  },
+  {
+    "invoiceId": "INV-1002",
+    "supplier": "Acme Supplies",
+    "invoiceNumber": "ACME-1001",
+    "recipient": "supplier@example.com",
+    "amount": "750.00",
+    "currency": "USD",
+    "dueDate": "2026-11-20",
+    "history": []
+  },
+  {
+    "invoiceId": "INV-1003",
+    "supplier": "Logistics Partner",
+    "invoiceNumber": "LOG-204",
+    "recipient": "logistics@examplf.com",
+    "amount": "1250.00",
+    "currency": "USD",
+    "dueDate": "2026-11-18",
+    "history": []
+  }
+]
