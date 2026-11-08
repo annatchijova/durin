@@ -13,6 +13,7 @@ payment.
 | `get_business_policy` | Read-only | Returns the merchant policy without secrets. |
 | `list_invoices` | Read-only | Loads a bounded local JSON fixture when configured. |
 | `find_possible_duplicates` | Pure computation | Groups repeated invoice identities. |
+| `analyze_supplier_operations` | Pure computation | Runs supplier preflight, conflict checks, and exact batch metrics. |
 | `create_payment_proposal` | Pure computation | Applies policy and returns ready or excluded invoices. |
 
 The proposal result always includes `NO_PAYMENT_SUBMITTED` and

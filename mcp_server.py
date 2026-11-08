@@ -16,6 +16,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from automation import prepare_proposal
+from supplier_operations import analyze_supplier_batch
 
 
 mcp = FastMCP("durin-merchant-automation")
@@ -116,7 +117,7 @@ def get_agent_capabilities() -> dict[str, Any]:
     return {
         "ok": True,
         "agent": "durin-merchant-automation",
-        "can": ["read_policy", "read_invoices", "find_duplicates", "prepare_payment_proposal"],
+        "can": ["read_policy", "read_invoices", "find_duplicates", "analyze_supplier_operations", "prepare_payment_proposal"],
         "cannot": ["approve_payment", "capture_payment", "send_money", "read_secrets"],
         "approvalBoundary": "A merchant must explicitly authorize any payment action.",
     }
@@ -176,6 +177,18 @@ def create_payment_proposal(invoices: list[dict[str, Any]]) -> dict[str, Any]:
         return {"ok": True, "merchant": policy["merchantName"], **proposal}
     except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         return _error("proposal_failed", str(exc))
+
+
+@mcp.tool()
+def analyze_supplier_operations(
+    invoices: list[dict[str, Any]], operations: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """Run supplier preflight, conflict detection, and exact batch metrics."""
+    try:
+        result = analyze_supplier_batch(invoices, operations or [], policy=_load_policy())
+        return {"ok": True, **result}
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        return _error("operations_analysis_failed", str(exc))
 
 
 if __name__ == "__main__":
