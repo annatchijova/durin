@@ -18,6 +18,7 @@ from mcp.server.fastmcp import FastMCP
 from automation import prepare_proposal
 from source_ingestion import list_sources as ingest_sources, validate_invoice_extraction
 from supplier_operations import analyze_supplier_batch
+from operations_narrative import build_operations_report
 
 
 mcp = FastMCP("durin-merchant-automation")
@@ -118,7 +119,7 @@ def get_agent_capabilities() -> dict[str, Any]:
     return {
         "ok": True,
         "agent": "durin-merchant-automation",
-        "can": ["read_sources", "read_policy", "read_invoices", "extract_invoice_facts", "find_duplicates", "analyze_supplier_operations", "prepare_payment_proposal"],
+        "can": ["read_sources", "read_policy", "read_invoices", "extract_invoice_facts", "find_duplicates", "analyze_supplier_operations", "generate_operations_report", "prepare_payment_proposal"],
         "cannot": ["approve_payment", "capture_payment", "send_money", "read_secrets"],
         "approvalBoundary": "A merchant must explicitly authorize any payment action.",
     }
@@ -211,6 +212,18 @@ def analyze_supplier_operations(
         return {"ok": True, **result}
     except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         return _error("operations_analysis_failed", str(exc))
+
+
+@mcp.tool()
+def generate_operations_report(
+    invoices: list[dict[str, Any]], operations: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """Return deterministic supplier metrics plus a separate explanation layer."""
+    try:
+        analysis = analyze_supplier_batch(invoices, operations or [], policy=_load_policy())
+        return {"ok": True, "analysis": analysis, "report": build_operations_report(analysis)}
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        return _error("operations_report_failed", str(exc))
 
 
 if __name__ == "__main__":
