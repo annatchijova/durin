@@ -85,6 +85,11 @@ pending provider states remain explicit `PENDING_OPERATION` exceptions.
 The batch also flags conflicting supplier identities and contradictory amount
 or currency facts for the same invoice number; it never chooses one silently.
 
+The PayPal boundary currently has an offline request builder and response
+normalizer. It does not hold credentials or submit a payout. A real Sandbox
+adapter must reuse the same `sender_batch_id` after an uncertain response and
+look up the batch before attempting recovery.
+
 ## Input shape
 
 ```json
