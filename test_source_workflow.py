@@ -1,17 +1,17 @@
+import tempfile
 import unittest
+from pathlib import Path
 
+from source_ingestion import list_sources
 from source_workflow import build_report_from_extractions
 
 
 class SourceWorkflowTests(unittest.TestCase):
     def setUp(self):
-        self.source = {
-            "sourceId": "source-1",
-            "source": "/authorized/invoice-1.txt",
-            "sourceHash": "hash-1",
-            "content": "Supplier: Acme\nInvoice: A-1\nRecipient: supplier@example.com\nAmount: 100.00\nCurrency: USD\nDue: 2026-11-30\nConcept: Hosting",
-            "requiresReview": False,
-        }
+        self.tempdir = tempfile.TemporaryDirectory()
+        source_path = Path(self.tempdir.name) / "invoice-1.txt"
+        source_path.write_text("Supplier: Acme\nInvoice: A-1\nRecipient: supplier@example.com\nAmount: 100.00\nCurrency: USD\nDue: 2026-11-30\nConcept: Hosting", encoding="utf-8")
+        self.source = list_sources(self.tempdir.name)[0]
         self.candidate = {
             "supplier": "Acme",
             "invoiceNumber": "A-1",
@@ -38,11 +38,14 @@ class SourceWorkflowTests(unittest.TestCase):
             "approvedRecipients": ["supplier@example.com"],
         }
 
+    def tearDown(self):
+        self.tempdir.cleanup()
+
     def test_source_to_report_preserves_provenance_and_metrics(self):
         report = build_report_from_extractions(
             policy=self.policy,
             sources=[self.source],
-            candidates_by_source_id={"source-1": self.candidate},
+            candidates_by_source_id={self.source["sourceId"]: self.candidate},
             operations=[],
             report_id="R-1",
             observed_at="2026-11-08T12:00:00Z",
@@ -50,7 +53,7 @@ class SourceWorkflowTests(unittest.TestCase):
         )
         self.assertEqual(report["metrics"]["invoiceCount"], 1)
         self.assertEqual(report["extraction"]["extractedCount"], 1)
-        self.assertEqual(report["rows"][0]["invoiceId"], "source-source-1")
+        self.assertEqual(report["rows"][0]["invoiceId"], f"source-{self.source['sourceId']}")
         self.assertEqual(report["rows"][0]["status"], "READY_FOR_REVIEW")
 
     def test_missing_candidate_is_explicit_and_not_an_invoice(self):

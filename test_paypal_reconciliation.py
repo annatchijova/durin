@@ -20,14 +20,14 @@ class PayPalReconciliationTests(unittest.TestCase):
 
     def test_exact_success_is_the_only_match(self):
         evidence = preserve_provider_evidence({
-            "transaction_id": "TX-1", "transaction_status": "SUCCESS",
+            "payout_item_id": "ITEM-1", "transaction_id": "TX-1", "transaction_status": "SUCCESS",
             "payout_item": {"amount": {"value": "5.00", "currency": "USD"}},
         })
         self.assertEqual(reconcile_provider_evidence(expected_amount="5.00", expected_currency="USD", evidence=evidence)["status"], "MATCHED")
 
     def test_currency_or_amount_mismatch_is_not_posted(self):
         evidence = preserve_provider_evidence({
-            "transaction_status": "SUCCESS",
+            "payout_item_id": "ITEM-1", "transaction_id": "TX-1", "transaction_status": "SUCCESS",
             "payout_item": {"amount": {"value": "6.00", "currency": "USD"}},
         })
         result = reconcile_provider_evidence(expected_amount="5.00", expected_currency="USD", evidence=evidence)

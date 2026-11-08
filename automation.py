@@ -82,7 +82,11 @@ def prepare_proposal(invoices: list[dict[str, Any]], policy: dict[str, Any]) -> 
     """Apply a validated merchant policy and return a review-only proposal."""
     if not isinstance(invoices, list) or len(invoices) > MAX_INVOICES:
         raise ValueError("invoices must be a bounded array")
-    approved = {str(value).casefold() for value in policy.get("approvedRecipients", [])}
+    configured_recipients = policy.get("approvedRecipients")
+    if not isinstance(configured_recipients, list) or not configured_recipients:
+        raise ValueError("approvedRecipients must be a non-empty list")
+    approved = {str(value).casefold() for value in configured_recipients}
+    base_currency = _text(policy.get("baseCurrency", "USD"), "baseCurrency").upper()
     max_payment = Decimal(str(policy["maxAmountPerPayment"]))
     max_batch = Decimal(str(policy["maxAmountPerBatch"]))
     approval_threshold = Decimal(str(policy["approvalRequiredAbove"]))
@@ -103,13 +107,17 @@ def prepare_proposal(invoices: list[dict[str, Any]], policy: dict[str, Any]) -> 
         number = _text(invoice.get("invoiceNumber"), "invoiceNumber")
         identity = (supplier.casefold(), number.casefold(), currency, format_money(amount))
         reasons: list[str] = []
+        if currency != base_currency:
+            reasons.append("CURRENCY_NOT_SUPPORTED")
+        if invoice.get("requiresReview") is True:
+            reasons.append("REQUIRES_SOURCE_REVIEW")
         if identity in seen:
             reasons.append("POSSIBLE_DUPLICATE")
         seen.add(identity)
         if approved and recipient.casefold() not in approved:
             candidates = [
                 {"recipient": candidate, "distance": distance}
-                for candidate in policy["approvedRecipients"]
+                for candidate in configured_recipients
                 if (distance := _distance_one_or_two(recipient, candidate)) is not None
             ]
             reasons.append("POSSIBLE_TYPO" if len(candidates) == 1 else "RECIPIENT_NOT_APPROVED")

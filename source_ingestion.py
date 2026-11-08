@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
+import secrets
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +15,7 @@ MAX_SOURCE_BYTES = 2_000_000
 MAX_SOURCES = 100
 MAX_CONTENT_CHARS = 200_000
 TEXT_SUFFIXES = {".eml", ".txt", ".md", ".csv", ".json"}
+SUPPORTED_EXTRACTION_KINDS = {"INVOICE", "EMAIL", "DOCUMENT"}
 ALLOWED_INVOICE_FIELDS = {
     "supplier",
     "invoiceNumber",
@@ -26,6 +29,21 @@ ALLOWED_INVOICE_FIELDS = {
 
 def _sha256(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
+
+
+_ATTESTATION_KEY = os.environ.get("DURIN_SOURCE_ATTESTATION_KEY", "").encode("utf-8") or secrets.token_bytes(32)
+
+
+def _attestation_payload(source: dict[str, Any]) -> bytes:
+    fields = {
+        key: source.get(key)
+        for key in ("sourceId", "sourceHash", "source", "kind", "sizeBytes", "contentAvailable", "validationStatus", "requiresReview", "observedAt", "content")
+    }
+    return json.dumps(fields, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _attest(source: dict[str, Any]) -> str:
+    return hmac.new(_ATTESTATION_KEY, _attestation_payload(source), hashlib.sha256).hexdigest()
 
 
 def _kind(path: Path) -> str:
@@ -65,6 +83,7 @@ def _read_source(path: Path) -> dict[str, Any]:
     else:
         source["validationStatus"] = "METADATA_ONLY"
         source["requiresReview"] = True
+    source["attestation"] = _attest(source)
     return source
 
 
@@ -99,11 +118,10 @@ def validate_invoice_extraction(
     missing = ALLOWED_INVOICE_FIELDS - set(candidate)
     if missing:
         raise ValueError(f"extraction is missing fields: {sorted(missing)}")
-    if not source.get("sourceId") or not source.get("sourceHash"):
-        raise ValueError("source provenance is incomplete")
     evidence = candidate.get("evidence", {})
     if not isinstance(evidence, dict):
         raise ValueError("evidence must be an object")
+    validate_source_record(source, require_content=True, require_kind=True)
     content = str(source.get("content", ""))
     fields: dict[str, Any] = {}
     for field in sorted(ALLOWED_INVOICE_FIELDS):
@@ -111,7 +129,12 @@ def validate_invoice_extraction(
         if not isinstance(value, str) or not value.strip() or len(value) > 256:
             raise ValueError(f"extracted field is invalid: {field}")
         excerpt = evidence.get(field, "")
-        excerpt_is_supported = isinstance(excerpt, str) and bool(excerpt) and excerpt in content
+        excerpt_is_supported = (
+            isinstance(excerpt, str)
+            and bool(excerpt)
+            and excerpt in content
+            and value.strip() in excerpt
+        )
         fields[field] = {
             "value": value.strip(),
             "provenance": {
@@ -135,6 +158,26 @@ def validate_invoice_extraction(
         "fields": fields,
         "requiresReview": any(item["provenance"]["requiresReview"] for item in fields.values()),
     }
+
+
+def validate_source_record(source: dict[str, Any], *, require_content: bool = False, require_kind: bool = False) -> None:
+    """Verify that a source object came from this process's ingestion boundary."""
+    if not isinstance(source, dict) or not source.get("sourceId") or not source.get("sourceHash") or not source.get("attestation"):
+        raise ValueError("source provenance is incomplete")
+    if not hmac.compare_digest(str(source["attestation"]), _attest(source)):
+        raise ValueError("source attestation is invalid")
+    source_hash = str(source["sourceHash"])
+    if len(source_hash) != 64 or any(character not in "0123456789abcdef" for character in source_hash.lower()):
+        raise ValueError("sourceHash must be a SHA-256 digest")
+    if source.get("sourceId") != source_hash[:24]:
+        raise ValueError("sourceId does not match sourceHash")
+    if require_kind and source.get("kind") not in SUPPORTED_EXTRACTION_KINDS:
+        raise ValueError("source kind is not eligible for invoice extraction")
+    if require_content and (source.get("validationStatus") != "LOADED" or not source.get("contentAvailable")):
+        raise ValueError("source content is not fully available for extraction")
+    content = source.get("content")
+    if source.get("contentAvailable") and source.get("validationStatus") == "LOADED" and (not isinstance(content, str) or _sha256(content.encode("utf-8")) != source_hash):
+        raise ValueError("source content does not match sourceHash")
 
 
 def load_json_candidate(path: str | os.PathLike[str]) -> dict[str, Any]:

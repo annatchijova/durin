@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import os
+import secrets
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 
@@ -14,6 +18,14 @@ def _canonical(value: Any) -> bytes:
 
 def proposal_digest(proposal: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical(proposal)).hexdigest()
+
+
+_AUTHORIZATION_KEY = os.environ.get("DURIN_AUTHORIZATION_KEY", "").encode("utf-8") or secrets.token_bytes(32)
+
+
+def _authorization_proof(*, proposal_id: str, proposal_digest_value: str, authorization_id: str, approver_id: str, approved_at: str, expires_at: str) -> str:
+    payload = "|".join((proposal_id, proposal_digest_value, authorization_id, approver_id, approved_at, expires_at)).encode()
+    return hmac.new(_AUTHORIZATION_KEY, payload, hashlib.sha256).hexdigest()
 
 
 def create_immutable_proposal(
@@ -36,6 +48,26 @@ def create_immutable_proposal(
     if not isinstance(evidence_refs, list) or any(not isinstance(item, str) or not item for item in evidence_refs):
         raise ValueError("evidence_refs must be a list of non-empty strings")
     items = sorted(accepted, key=lambda item: str(item.get("invoiceId", "")))
+    if any(item.get("requiresReview") is True for item in items):
+        raise ValueError("proposal cannot contain items requiring source review")
+    if any(not isinstance(item, dict) or not item.get("invoiceId") for item in items):
+        raise ValueError("proposal items require invoiceId")
+    if len({str(item["invoiceId"]) for item in items}) != len(items):
+        raise ValueError("proposal invoiceIds must be unique")
+    amounts = [item.get("amount") for item in items]
+    if any(not isinstance(value, str) for value in amounts):
+        raise ValueError("proposal item amounts must be strings")
+    try:
+        calculated_total = sum((Decimal(value) for value in amounts), Decimal("0"))
+        declared_total = Decimal(total_amount)
+    except (InvalidOperation, TypeError) as exc:
+        raise ValueError("proposal amounts must be decimal values") from exc
+    if calculated_total != declared_total:
+        raise ValueError("proposal total does not equal item totals")
+    if declared_total <= 0 or any(Decimal(value) <= 0 or value.startswith(("+", "-")) or "e" in value.lower() for value in amounts):
+        raise ValueError("proposal amounts must be positive fixed-point values")
+    if any(str(item.get("currency", currency)).upper() != currency.upper() for item in items):
+        raise ValueError("proposal item currency does not match proposal currency")
     proposal = {
         "schemaVersion": 1,
         "proposalId": proposal_id,
@@ -63,22 +95,33 @@ def approve_proposal(
         raise ValueError("proposal is not pending approval")
     _valid_interval(proposal["createdAt"], approved_at)
     _valid_interval(approved_at, proposal["expiresAt"])
-    if not approver_id:
+    if not isinstance(approver_id, str) or not approver_id.strip():
         raise ValueError("approver_id is required")
+    authorization_id = hashlib.sha256(f"{expected_digest}:{approver_id}:{approved_at}".encode()).hexdigest()[:24]
     return {
-        "authorizationId": hashlib.sha256(f"{expected_digest}:{approver_id}:{approved_at}".encode()).hexdigest()[:24],
+        "authorizationId": authorization_id,
+        "proposalId": proposal["proposalId"],
         "proposalDigest": expected_digest,
         "approverId": approver_id,
         "approvedAt": approved_at,
         "expiresAt": proposal["expiresAt"],
         "status": "APPROVED",
         "execution": "NOT_EXECUTED",
+        "authorizationProof": _authorization_proof(
+            proposal_id=proposal["proposalId"], proposal_digest_value=expected_digest,
+            authorization_id=authorization_id,
+            approver_id=approver_id, approved_at=approved_at, expires_at=proposal["expiresAt"],
+        ),
     }
 
 
 def _valid_interval(start: str, end: str) -> None:
     try:
-        if datetime.fromisoformat(start.replace("Z", "+00:00")) > datetime.fromisoformat(end.replace("Z", "+00:00")):
+        start_value = datetime.fromisoformat(start.replace("Z", "+00:00"))
+        end_value = datetime.fromisoformat(end.replace("Z", "+00:00"))
+        if start_value.tzinfo is None or end_value.tzinfo is None:
+            raise ValueError("timestamps must include a timezone")
+        if start_value > end_value:
             raise ValueError("timestamps are out of order")
     except ValueError as exc:
         raise ValueError("timestamps must be ordered ISO timestamps") from exc

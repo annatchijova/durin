@@ -52,7 +52,7 @@ CANDIDATE = {
 def check(label: str, operation) -> None:
     try:
         result = operation()
-        print(json.dumps({"label": label, "outcome": "ACCEPTED", "result": result}, default=str))
+        print(json.dumps({"label": label, "outcome": "RETURNED_FOR_REVIEW", "result": result}, default=str))
     except Exception as exc:  # Deliberately record boundary failures as evidence.
         print(json.dumps({"label": label, "outcome": "REJECTED_OR_ESCAPED", "error": type(exc).__name__, "message": str(exc)}))
 

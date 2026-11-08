@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from source_ingestion import validate_invoice_extraction
+from source_ingestion import MAX_SOURCES, validate_invoice_extraction, validate_source_record
 from supplier_report import build_supplier_report
 
 
@@ -26,18 +26,23 @@ def build_report_from_extractions(
     operations engine. It never lets a candidate choose policy, approve a
     payment, or assert that an operation was executed.
     """
-    if not isinstance(sources, list) or not sources:
+    if not isinstance(sources, list) or not sources or len(sources) > MAX_SOURCES:
         raise ValueError("sources must be a non-empty list")
     if not isinstance(candidates_by_source_id, dict):
         raise ValueError("candidates_by_source_id must be an object")
     invoices: list[dict[str, Any]] = []
     manifest: list[dict[str, str]] = []
+    seen_source_ids: set[str] = set()
     for source in sources:
         if not isinstance(source, dict):
             raise ValueError("sources must contain objects")
         source_id = source.get("sourceId")
         if not isinstance(source_id, str) or not source_id:
             raise ValueError("source is missing sourceId")
+        if source_id in seen_source_ids:
+            raise ValueError("sourceId must be unique")
+        seen_source_ids.add(source_id)
+        validate_source_record(source)
         candidate = candidates_by_source_id.get(source_id)
         if candidate is None:
             manifest.append(_manifest(source, "MISSING_EXTRACTION"))
@@ -66,7 +71,7 @@ def build_report_from_extractions(
         "sourceCount": len(sources),
         "extractedCount": len(invoices),
         "missingExtractionCount": len(sources) - len(invoices),
-        "requiresReviewCount": sum(bool(item.get("requiresReview")) for item in manifest),
+        "requiresReviewCount": sum(item.get("requiresReview") == "true" for item in manifest),
     }
     return report
 

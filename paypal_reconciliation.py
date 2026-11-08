@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import os
+import secrets
 from decimal import Decimal, InvalidOperation
 from typing import Any
+
+
+_EVIDENCE_KEY = os.environ.get("DURIN_PROVIDER_EVIDENCE_KEY", "").encode("utf-8") or secrets.token_bytes(32)
 
 
 def provider_request_id(scope: str, client_request_id: str) -> str:
@@ -29,10 +35,13 @@ def preserve_provider_evidence(item: dict[str, Any]) -> dict[str, Any]:
     try:
         parsed_amount = _amount(raw_value)
         _currency(raw_currency)
-    except ValueError as exc:
+    except (TypeError, ValueError, InvalidOperation) as exc:
         parse_error = str(exc)
-    return {
+    evidence = {
         "provider": "paypal",
+        "invoiceId": item.get("invoiceId"),
+        "invoiceNumber": item.get("invoiceNumber"),
+        "payoutBatchId": item.get("payout_batch_id"),
         "providerItemId": item.get("payout_item_id"),
         "transactionId": item.get("transaction_id"),
         "providerStatus": status,
@@ -42,6 +51,9 @@ def preserve_provider_evidence(item: dict[str, Any]) -> dict[str, Any]:
         "parseError": parse_error,
         "evidenceStatus": "REQUIRES_RECONCILIATION" if parse_error else "INTERPRETED",
     }
+    canonical = json.dumps(evidence, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    evidence["evidenceAttestation"] = hmac.new(_EVIDENCE_KEY, canonical, hashlib.sha256).hexdigest()
+    return evidence
 
 
 def reconcile_provider_evidence(
@@ -52,11 +64,24 @@ def reconcile_provider_evidence(
     currency = _currency(expected_currency)
     if evidence.get("parseError"):
         return {"status": "RECONCILIATION_REQUIRED", "reason": "PROVIDER_AMOUNT_UNINTERPRETABLE"}
+    if not verify_provider_evidence(evidence):
+        return {"status": "RECONCILIATION_REQUIRED", "reason": "PROVIDER_EVIDENCE_UNATTESTED"}
     if evidence.get("providerStatus") != "SUCCESS":
         return {"status": "PENDING_PROVIDER" if evidence.get("providerStatus") in {"PENDING", "PROCESSING"} else "PROVIDER_EXCEPTION", "reason": evidence.get("providerStatus")}
+    if not evidence.get("providerItemId") or not evidence.get("transactionId"):
+        return {"status": "RECONCILIATION_REQUIRED", "reason": "PROVIDER_IDENTITY_INCOMPLETE"}
     if evidence.get("parsedAmount") != expected or str(evidence.get("providerCurrency", "")).upper() != currency:
         return {"status": "RECONCILIATION_REQUIRED", "reason": "AMOUNT_OR_CURRENCY_MISMATCH"}
     return {"status": "MATCHED", "reason": "EXACT_PROVIDER_EVIDENCE"}
+
+
+def verify_provider_evidence(evidence: dict[str, Any]) -> bool:
+    if not isinstance(evidence, dict):
+        return False
+    attestation = evidence.get("evidenceAttestation")
+    unsigned = {key: value for key, value in evidence.items() if key != "evidenceAttestation"}
+    expected = hmac.new(_EVIDENCE_KEY, json.dumps(unsigned, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(), hashlib.sha256).hexdigest()
+    return isinstance(attestation, str) and secrets.compare_digest(attestation, expected)
 
 
 def _amount(value: Any) -> str:
@@ -66,6 +91,8 @@ def _amount(value: Any) -> str:
         parsed = Decimal(value)
     except InvalidOperation as exc:
         raise ValueError("provider amount is not decimal") from exc
+    if not parsed.is_finite():
+        raise ValueError("provider amount must be finite")
     if parsed <= 0 or parsed.as_tuple().exponent < -2:
         raise ValueError("provider amount has invalid precision")
     return format(parsed.quantize(Decimal("0.01")), "f")

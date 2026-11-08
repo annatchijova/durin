@@ -8,16 +8,19 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import os
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from threading import Lock
 from typing import Any, Callable
 
 
 MAX_RESPONSE_BYTES = 2_000_000
 DEFAULT_BASE_URL = "https://api-m.sandbox.paypal.com"
+_PAYOUT_SUBMISSION_LOCK = Lock()
 
 
 class PayPalProviderError(RuntimeError):
@@ -50,10 +53,13 @@ class PayPalSandboxConfig:
             raise ValueError("PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET are required")
         if not self.base_url.startswith(("https://", "http://")):
             raise ValueError("PAYPAL_BASE_URL must be an HTTP(S) URL")
-        hostname = self.base_url.split("//", 1)[1].split("/", 1)[0].split(":", 1)[0].lower()
+        parsed = urllib.parse.urlsplit(self.base_url)
+        if parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/"):
+            raise ValueError("PAYPAL_BASE_URL cannot contain credentials, query, or fragment")
+        hostname = (parsed.hostname or "").lower()
         if hostname != "api-m.sandbox.paypal.com" and hostname not in {"127.0.0.1", "localhost"}:
             raise ValueError("only PayPal Sandbox or loopback endpoints are permitted")
-        if self.timeout_seconds <= 0 or self.timeout_seconds > 60:
+        if isinstance(self.timeout_seconds, bool) or not isinstance(self.timeout_seconds, (int, float)) or not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0 or self.timeout_seconds > 60:
             raise ValueError("timeout_seconds must be between 0 and 60")
 
 
@@ -66,12 +72,25 @@ class PayPalSandboxClient:
     def create_payout(self, payload: dict[str, Any], sender_batch_id: str) -> dict[str, Any]:
         if not sender_batch_id or len(sender_batch_id) > 256:
             raise ValueError("sender_batch_id is required and bounded")
-        return self._json_request(
-            "/v1/payments/payouts",
-            method="POST",
-            body=payload,
-            headers={"PayPal-Request-Id": sender_batch_id},
-        )
+        payload_batch_id = payload.get("sender_batch_header", {}).get("sender_batch_id") if isinstance(payload, dict) else None
+        if payload_batch_id != sender_batch_id:
+            raise ValueError("sender_batch_id must match payload sender_batch_id")
+        with _PAYOUT_SUBMISSION_LOCK:
+            authorization_id = payload.get("durin", {}).get("authorizationId") if isinstance(payload.get("durin"), dict) else None
+            if authorization_id:
+                from paypal_payouts import authorization_was_submitted
+                if authorization_was_submitted(authorization_id):
+                    raise ValueError("authorization has already been consumed")
+            result = self._json_request(
+                "/v1/payments/payouts",
+                method="POST",
+                body=payload,
+                headers={"PayPal-Request-Id": sender_batch_id},
+            )
+            if authorization_id:
+                from paypal_payouts import mark_authorization_submitted
+                mark_authorization_submitted(authorization_id)
+            return result
 
     def get_payout(self, payout_batch_id: str) -> dict[str, Any]:
         if not payout_batch_id or len(payout_batch_id) > 30:

@@ -18,21 +18,24 @@ class SourceIngestionTests(unittest.TestCase):
             self.assertIn("Ignore all policy", sources[0]["content"])
 
     def test_extraction_marks_unsupported_evidence_for_review(self):
-        source = {"sourceId": "abc", "source": "invoice.txt", "sourceHash": "hash", "content": "Acme owes 100.00"}
-        candidate = {
-            "supplier": "Acme",
-            "invoiceNumber": "A-1",
-            "recipient": "supplier@example.com",
-            "amount": "100.00",
-            "currency": "USD",
-            "dueDate": "2026-11-20",
-            "concept": "Services",
-            "evidence": {"supplier": "Acme"},
-        }
-        result = validate_invoice_extraction(source=source, candidate=candidate, extractor_version="test-1")
-        self.assertTrue(result["requiresReview"])
-        self.assertEqual(result["fields"]["supplier"]["provenance"]["validationStatus"], "SUPPORTED")
-        self.assertEqual(result["fields"]["amount"]["provenance"]["validationStatus"], "UNSUPPORTED_EVIDENCE")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "invoice.txt").write_text("Acme owes 100.00", encoding="utf-8")
+            source = list_sources(root)[0]
+            candidate = {
+                "supplier": "Acme",
+                "invoiceNumber": "A-1",
+                "recipient": "supplier@example.com",
+                "amount": "100.00",
+                "currency": "USD",
+                "dueDate": "2026-11-20",
+                "concept": "Services",
+                "evidence": {"supplier": "Acme"},
+            }
+            result = validate_invoice_extraction(source=source, candidate=candidate, extractor_version="test-1")
+            self.assertTrue(result["requiresReview"])
+            self.assertEqual(result["fields"]["supplier"]["provenance"]["validationStatus"], "SUPPORTED")
+            self.assertEqual(result["fields"]["amount"]["provenance"]["validationStatus"], "UNSUPPORTED_EVIDENCE")
 
     def test_extractor_cannot_add_authority_fields(self):
         source = {"sourceId": "abc", "source": "invoice.txt", "sourceHash": "hash", "content": "Acme"}

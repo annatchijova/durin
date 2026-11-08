@@ -35,7 +35,7 @@ class PayPalClientTests(unittest.TestCase):
             return FakeResponse(201, {"batch_header": {"payout_batch_id": "B-1", "batch_status": "PENDING"}})
 
         client = PayPalSandboxClient(PayPalSandboxConfig("id", "secret", "http://127.0.0.1"), opener=opener)
-        result = client.create_payout({"items": []}, "durin-request-1")
+        result = client.create_payout({"sender_batch_header": {"sender_batch_id": "durin-request-1"}, "items": []}, "durin-request-1")
         self.assertEqual(result["batch_header"]["payout_batch_id"], "B-1")
         second_headers = {key.lower(): value for key, value in requests[1].header_items()}
         first_headers = {key.lower(): value for key, value in requests[0].header_items()}
@@ -50,7 +50,7 @@ class PayPalClientTests(unittest.TestCase):
 
         client = PayPalSandboxClient(PayPalSandboxConfig("id", "secret", "http://localhost"), opener=opener)
         with self.assertRaises(PayPalProviderError) as caught:
-            client.create_payout({}, "durin-request-2")
+            client.create_payout({"sender_batch_header": {"sender_batch_id": "durin-request-2"}}, "durin-request-2")
         self.assertEqual(caught.exception.status, 503)
         self.assertEqual(caught.exception.body, {"name": "TEMPORARY_FAILURE"})
 

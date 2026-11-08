@@ -38,7 +38,7 @@ class PayPalPayoutsTests(unittest.TestCase):
     def test_provider_states_are_preserved(self):
         result = normalize_payout_response({
             "batch_header": {"payout_batch_id": "B-1", "batch_status": "SUCCESS"},
-            "items": [{"payout_item_id": "I-1", "transaction_status": "UNCLAIMED"}],
+            "items": [{"payout_item_id": "I-1", "transaction_id": "T-1", "transaction_status": "UNCLAIMED"}],
         })
         self.assertEqual(result["providerBatchStatus"], "SUCCESS")
         self.assertEqual(result["reconciliationStatus"], "REVIEW_ITEM_STATES")

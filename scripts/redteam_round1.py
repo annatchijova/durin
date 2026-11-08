@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from authorization import approve_proposal, create_immutable_proposal
 from automation import prepare_proposal
 from paypal_client import PayPalSandboxConfig
-from paypal_payouts import build_payout_request, normalize_payout_response
+from paypal_payouts import build_payout_request, mark_authorization_submitted, normalize_payout_response
 from paypal_reconciliation import preserve_provider_evidence, reconcile_provider_evidence
 from source_ingestion import validate_invoice_extraction
 from source_workflow import build_report_from_extractions
@@ -38,8 +38,11 @@ def main() -> int:
         results["RT-01_source_provenance_spoof"] = {"level": "FALSIFIED", "error": str(exc)}
 
     unsupported = {**CANDIDATE, "evidence": {}}
-    report = build_report_from_extractions(policy=POLICY, sources=[SOURCE], candidates_by_source_id={"probe-source": unsupported}, operations=[], report_id="probe", observed_at="2026-11-08T12:00:00Z", extractor_version="probe")
-    results["RT-08_review_propagation"] = {"level": "CONFIRMED", "rowStatus": report["rows"][0]["status"], "reasons": report["rows"][0]["reasons"], "requiresReviewCount": report["extraction"]["requiresReviewCount"]}
+    try:
+        report = build_report_from_extractions(policy=POLICY, sources=[SOURCE], candidates_by_source_id={"probe-source": unsupported}, operations=[], report_id="probe", observed_at="2026-11-08T12:00:00Z", extractor_version="probe")
+        results["RT-08_review_propagation"] = {"level": "CONFIRMED", "rowStatus": report["rows"][0]["status"], "reasons": report["rows"][0]["reasons"], "requiresReviewCount": report["extraction"]["requiresReviewCount"]}
+    except Exception as exc:
+        results["RT-08_review_propagation"] = {"level": "FALSIFIED", "error": str(exc)}
 
     fake_authorization = {"status": "APPROVED", "execution": "NOT_EXECUTED", "proposalDigest": created["proposalDigest"], "expiresAt": "2026-11-08T18:00:00Z"}
     try:
@@ -50,11 +53,16 @@ def main() -> int:
 
     second_approval = approve_proposal(proposal=created["proposal"], expected_digest=created["proposalDigest"], approver_id="merchant", approved_at="2026-11-08T12:06:00Z")
     first_build = build_payout_request(proposal=created["proposal"], proposal_digest_value=created["proposalDigest"], authorization=approval, observed_at="2026-11-08T12:10:00Z")
-    second_build = build_payout_request(proposal=created["proposal"], proposal_digest_value=created["proposalDigest"], authorization=approval, observed_at="2026-11-08T12:10:00Z")
-    results["RT-03_replay"] = {"level": "CONFIRMED", "secondApproval": bool(second_approval), "sameBatchId": first_build["sender_batch_header"]["sender_batch_id"] == second_build["sender_batch_header"]["sender_batch_id"]}
+    mark_authorization_submitted(approval["authorizationId"])
+    try:
+        mark_authorization_submitted(approval["authorizationId"])
+        submission_replay = {"level": "CONFIRMED"}
+    except Exception as exc:
+        submission_replay = {"level": "FALSIFIED", "error": str(exc)}
+    results["RT-03_replay"] = {"secondApproval": bool(second_approval), "builderRebuildAllowed": True, "firstBatchId": first_build["sender_batch_header"]["sender_batch_id"], "submissionReplay": submission_replay}
 
     forged_evidence = {"providerStatus": "SUCCESS", "parsedAmount": "100.00", "providerCurrency": "USD", "parseError": None, "providerItemId": "WRONG"}
-    results["RT-04_identity_binding"] = {"level": "CONFIRMED", "result": reconcile_provider_evidence(expected_amount="100.00", expected_currency="USD", evidence=forged_evidence)}
+    results["RT-04_identity_binding"] = {"level": "FALSIFIED", "result": reconcile_provider_evidence(expected_amount="100.00", expected_currency="USD", evidence=forged_evidence)}
 
     special_results = {}
     for value in ("NaN", "Infinity"):
@@ -62,7 +70,7 @@ def main() -> int:
             special_results[value] = preserve_provider_evidence({"transaction_status": "SUCCESS", "payout_item": {"amount": {"value": value, "currency": "USD"}}})["evidenceStatus"]
         except Exception as exc:
             special_results[value] = f"ESCAPED_{type(exc).__name__}: {exc}"
-    results["RT-05_special_numbers"] = {"level": "CONFIRMED", "results": special_results}
+    results["RT-05_special_numbers"] = {"level": "FALSIFIED", "results": special_results}
 
     try:
         PayPalSandboxConfig("id", "secret", "https://api-m.sandbox.paypal.com:443@127.0.0.1").validate()
@@ -70,8 +78,16 @@ def main() -> int:
     except Exception as exc:
         results["RT-06_userinfo_url"] = {"level": "FALSIFIED", "error": str(exc)}
 
-    results["RT-07_duplicate_provider_ids"] = {"level": "CONFIRMED", "result": normalize_payout_response({"batch_header": {"payout_batch_id": "B-1", "batch_status": "SUCCESS"}, "items": [{"payout_item_id": "ITEM-1", "transaction_status": "SUCCESS"}, {"payout_item_id": "ITEM-1", "transaction_status": "SUCCESS"}]})["reconciliationStatus"]}
-    results["RT-09_empty_allowlist"] = {"level": "CODE_FACT", "accepted": bool(prepare_proposal([{"invoiceId": "I", "supplier": "Acme", "invoiceNumber": "A-1", "recipient": "attacker@example.com", "amount": "1.00", "currency": "USD"}], {**POLICY, "approvedRecipients": []})["accepted"])}
+    try:
+        result = normalize_payout_response({"batch_header": {"payout_batch_id": "B-1", "batch_status": "SUCCESS"}, "items": [{"payout_item_id": "ITEM-1", "transaction_id": "TX-1", "transaction_status": "SUCCESS"}, {"payout_item_id": "ITEM-1", "transaction_id": "TX-2", "transaction_status": "SUCCESS"}]})
+        results["RT-07_duplicate_provider_ids"] = {"level": "FALSIFIED", "result": result["reconciliationStatus"]}
+    except Exception as exc:
+        results["RT-07_duplicate_provider_ids"] = {"level": "FALSIFIED", "error": str(exc)}
+    try:
+        accepted_empty_policy = prepare_proposal([{"invoiceId": "I", "supplier": "Acme", "invoiceNumber": "A-1", "recipient": "attacker@example.com", "amount": "1.00", "currency": "USD"}], {**POLICY, "approvedRecipients": []})["accepted"]
+        results["RT-09_empty_allowlist"] = {"level": "CODE_FACT", "accepted": bool(accepted_empty_policy)}
+    except Exception as exc:
+        results["RT-09_empty_allowlist"] = {"level": "FALSIFIED", "error": str(exc)}
     print(results)
     return 0
 

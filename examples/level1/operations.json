@@ -4,6 +4,11 @@
     "invoiceId": "INV-1001",
     "amount": "750.00",
     "currency": "USD",
-    "status": "SUCCESS"
+    "status": "PENDING",
+    "provider": "paypal",
+    "transactionId": "SANDBOX-TX-1001",
+    "payoutBatchId": "SANDBOX-B-1001",
+    "payoutItemId": "SANDBOX-I-1001",
+    "evidenceStatus": "INTERPRETED"
   }
 ]

@@ -1,6 +1,7 @@
 import unittest
 
 from supplier_operations import analyze_supplier_batch
+from paypal_reconciliation import preserve_provider_evidence
 
 
 POLICY = {
@@ -21,6 +22,16 @@ def invoice(invoice_id="INV-1", amount="100.00", recipient="supplier@example.com
     }
 
 
+def operation(operation_id="P-1", amount="100.00", currency="USD", status="SUCCESS", invoice_id="INV-1"):
+    evidence = preserve_provider_evidence({
+        "invoiceId": invoice_id, "invoiceNumber": "A-1", "payout_batch_id": "B-1",
+        "payout_item_id": f"I-{operation_id}", "transaction_id": f"T-{operation_id}",
+        "transaction_status": status,
+        "payout_item": {"amount": {"value": amount, "currency": currency}},
+    })
+    return {"operationId": operation_id, "invoiceId": invoice_id, "invoiceNumber": "A-1", "amount": amount, "currency": currency, "status": status, "payoutBatchId": "B-1", "providerEvidence": evidence}
+
+
 class SupplierOperationsTests(unittest.TestCase):
     def test_duplicate_and_typo_are_separate_reasons(self):
         result = analyze_supplier_batch([invoice(), invoice("INV-2"), invoice("INV-3", recipient="supplier@examplf.com", number="A-3")], [], policy=POLICY)
@@ -34,21 +45,21 @@ class SupplierOperationsTests(unittest.TestCase):
 
     def test_two_operations_are_ambiguous(self):
         operations = [
-            {"operationId": "P-1", "invoiceId": "INV-1", "amount": "100.00", "currency": "USD", "status": "SUCCESS"},
-            {"operationId": "P-2", "invoiceId": "INV-1", "amount": "100.00", "currency": "USD", "status": "SUCCESS"},
+            operation("P-1"),
+            operation("P-2"),
         ]
         result = analyze_supplier_batch([invoice()], operations, policy=POLICY)
         self.assertEqual(result["rows"][0]["operationState"], "AMBIGUOUS")
         self.assertIn("AMBIGUOUS_OPERATION", result["rows"][0]["reasons"])
 
     def test_mismatched_currency_does_not_reconcile(self):
-        operations = [{"operationId": "P-1", "invoiceId": "INV-1", "amount": "100.00", "currency": "EUR", "status": "SUCCESS"}]
+        operations = [operation(currency="EUR")]
         result = analyze_supplier_batch([invoice()], operations, policy=POLICY)
         self.assertEqual(result["rows"][0]["operationState"], "MISMATCHED")
         self.assertIn("OPERATION_MISMATCH", result["rows"][0]["reasons"])
 
     def test_partial_operation_is_not_treated_as_paid(self):
-        operations = [{"operationId": "P-1", "invoiceId": "INV-1", "amount": "40.00", "currency": "USD", "status": "SUCCESS"}]
+        operations = [operation(amount="40.00")]
         result = analyze_supplier_batch([invoice()], operations, policy=POLICY)
         row = result["rows"][0]
         self.assertEqual(row["operationState"], "PARTIALLY_MATCHED")
@@ -77,7 +88,7 @@ class SupplierOperationsTests(unittest.TestCase):
     def test_paid_invoice_is_not_marked_overdue(self):
         item = invoice()
         item["dueDate"] = "2026-11-01"
-        operations = [{"operationId": "P-1", "invoiceId": "INV-1", "amount": "100.00", "currency": "USD", "status": "SUCCESS"}]
+        operations = [operation()]
         result = analyze_supplier_batch([item], operations, policy=POLICY, observed_at="2026-11-08T12:00:00Z")
         self.assertNotIn("OVERDUE", result["rows"][0]["reasons"])
 

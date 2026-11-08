@@ -13,11 +13,14 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from automation import format_money, parse_amount
+from paypal_reconciliation import verify_provider_evidence
 
 
 MAX_ITEMS = 500
 PRICE_ALERT_PERCENT = Decimal("15")
 PENDING_OPERATION_STATES = {"PENDING", "PROCESSING", "ON_HOLD", "UNKNOWN"}
+SUCCESS_OPERATION_STATES = {"SUCCESS", "COMPLETED", "PAID"}
+FAILED_OPERATION_STATES = {"FAILED", "DENIED", "CANCELED", "CANCELLED", "RETURNED", "REFUNDED"}
 
 
 def _required_text(value: Any, field: str) -> str:
@@ -93,6 +96,12 @@ def _operation_for(invoice: dict[str, Any], operations: list[dict[str, Any]]) ->
             str(operation.get("invoiceId", "")),
             str(operation.get("invoiceNumber", "")).casefold(),
         }
+        if operation.get("invoiceId") and operation.get("invoiceId") != invoice_id:
+            continue
+        if operation.get("supplier") and str(operation["supplier"]).casefold() != str(invoice.get("supplier")).casefold():
+            continue
+        if operation.get("recipient") and str(operation["recipient"]).casefold() != str(invoice.get("recipient")).casefold():
+            continue
         if invoice_id in references or invoice_number in references:
             matches.append(operation)
     return matches
@@ -112,6 +121,8 @@ def preflight_supplier(
     identity = _identity(invoice)
     reasons: list[str] = []
     checks: list[dict[str, str]] = []
+    if invoice.get("requiresReview") is True:
+        reasons.append("REQUIRES_SOURCE_REVIEW")
 
     duplicate = identity in seen
     seen.add(identity)
@@ -157,13 +168,32 @@ def preflight_supplier(
             reasons.append("OPERATION_MISMATCH")
             operation_state = "MISMATCHED"
         elif op_amount < amount:
-            reasons.append("PARTIAL_OPERATION")
-            operation_state = "PARTIALLY_MATCHED"
-            recognized_amount = format_money(op_amount)
+            if operation_status in SUCCESS_OPERATION_STATES:
+                if _provider_evidence_complete(operation):
+                    reasons.append("PARTIAL_OPERATION")
+                    operation_state = "PARTIALLY_MATCHED"
+                    recognized_amount = format_money(op_amount)
+                else:
+                    reasons.append("PROVIDER_EVIDENCE_REQUIRED")
+                    operation_state = "UNVERIFIED_SUCCESS"
+            elif operation_status in PENDING_OPERATION_STATES:
+                reasons.append("PENDING_OPERATION")
+                operation_state = operation_status
+            else:
+                reasons.append("FAILED_OPERATION" if operation_status in FAILED_OPERATION_STATES else "UNKNOWN_OPERATION_STATE")
+                operation_state = operation_status
         else:
             operation_state = operation_status
-            if operation_status in PENDING_OPERATION_STATES:
+            if operation_status in SUCCESS_OPERATION_STATES:
+                if not _provider_evidence_complete(operation):
+                    reasons.append("PROVIDER_EVIDENCE_REQUIRED")
+                    operation_state = "UNVERIFIED_SUCCESS"
+            elif operation_status in PENDING_OPERATION_STATES:
                 reasons.append("PENDING_OPERATION")
+            elif operation_status in FAILED_OPERATION_STATES:
+                reasons.append("FAILED_OPERATION")
+            else:
+                reasons.append("UNKNOWN_OPERATION_STATE")
 
     due_date = None
     if invoice.get("dueDate") is not None:
@@ -203,6 +233,24 @@ def preflight_supplier(
     return item
 
 
+def _provider_evidence_complete(operation: dict[str, Any]) -> bool:
+    evidence = operation.get("providerEvidence")
+    return (
+        isinstance(evidence, dict)
+        and verify_provider_evidence(evidence)
+        and evidence.get("provider") == "paypal"
+        and evidence.get("providerStatus") == str(operation.get("status", "")).upper()
+        and evidence.get("providerAmountValue") == operation.get("amount")
+        and str(evidence.get("providerCurrency", "")).upper() == str(operation.get("currency", "")).upper()
+        and evidence.get("invoiceId") == operation.get("invoiceId")
+        and (not operation.get("invoiceNumber") or evidence.get("invoiceNumber") == operation.get("invoiceNumber"))
+        and evidence.get("payoutBatchId") == operation.get("payoutBatchId")
+        and evidence.get("evidenceStatus") == "INTERPRETED"
+        and all(evidence.get(field) for field in ("providerItemId", "transactionId"))
+        and operation.get("payoutBatchId")
+    )
+
+
 def analyze_supplier_batch(
     invoices: list[dict[str, Any]], operations: list[dict[str, Any]], *, policy: dict[str, Any],
     observed_at: str | None = None,
@@ -212,12 +260,20 @@ def analyze_supplier_batch(
         raise ValueError("invoices must be a bounded array")
     if not isinstance(operations, list) or len(operations) > MAX_ITEMS:
         raise ValueError("operations must be a bounded array")
+    recipients = policy.get("approvedRecipients")
+    if not isinstance(recipients, list) or not recipients:
+        raise ValueError("approvedRecipients must be a non-empty list")
+    base_currency = _currency(policy.get("baseCurrency", "USD"))
     seen: set[tuple[str, str, str, str]] = set()
     observed_date = _observed_date(observed_at) if observed_at is not None else None
     rows = [
         preflight_supplier(invoice, policy=policy, operations=operations, seen=seen, observed_date=observed_date)
         for invoice in invoices
     ]
+    for row in rows:
+        if row["currency"] != base_currency:
+            row["reasons"].append("CURRENCY_NOT_SUPPORTED")
+            row["status"] = "EXCLUDED"
     suppliers_by_number: dict[str, set[str]] = defaultdict(set)
     facts_by_supplier_number: dict[tuple[str, str], set[tuple[str, str]]] = defaultdict(set)
     for row in rows:
