@@ -35,7 +35,8 @@ HTTP requests.
   `preserve_provider_evidence()`; declared IDs alone are not sufficient.
 - `paypal_operation_adapter.py` is the binding path from a provider response to
   operations. It requires PayPal's `sender_item_id` to match the original
-  request; it never matches by position, amount, or recipient alone.
+  request and checks the returned receiver against the approved receiver; it
+  never matches by position, amount, or recipient alone.
 - The request builder rejects duplicate invoice IDs, execution-state
   contradictions, observations before approval, and timezone-naive timestamps.
 

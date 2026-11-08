@@ -27,9 +27,9 @@ def operation(operation_id="P-1", amount="100.00", currency="USD", status="SUCCE
         "invoiceId": invoice_id, "invoiceNumber": "A-1", "payout_batch_id": "B-1",
         "payout_item_id": f"I-{operation_id}", "transaction_id": f"T-{operation_id}",
         "transaction_status": status,
-        "payout_item": {"amount": {"value": amount, "currency": currency}},
+        "payout_item": {"receiver": "supplier@example.com", "amount": {"value": amount, "currency": currency}},
     })
-    return {"operationId": operation_id, "invoiceId": invoice_id, "invoiceNumber": "A-1", "amount": amount, "currency": currency, "status": status, "payoutBatchId": "B-1", "providerEvidence": evidence}
+    return {"operationId": operation_id, "invoiceId": invoice_id, "invoiceNumber": "A-1", "recipient": "supplier@example.com", "amount": amount, "currency": currency, "status": status, "payoutBatchId": "B-1", "providerEvidence": evidence}
 
 
 class SupplierOperationsTests(unittest.TestCase):

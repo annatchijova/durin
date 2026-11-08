@@ -28,6 +28,7 @@ def preserve_provider_evidence(item: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("provider item must be an object")
     status = _text(item.get("transaction_status"), "transaction_status").upper()
     amount = item.get("payout_item", {}).get("amount", {}) if isinstance(item.get("payout_item"), dict) else {}
+    provider_receiver = item.get("payout_item", {}).get("receiver") if isinstance(item.get("payout_item"), dict) else None
     raw_value = amount.get("value")
     raw_currency = amount.get("currency")
     parsed_amount = None
@@ -47,6 +48,7 @@ def preserve_provider_evidence(item: dict[str, Any]) -> dict[str, Any]:
         "providerStatus": status,
         "providerAmountValue": raw_value,
         "providerCurrency": raw_currency,
+        "providerReceiver": provider_receiver,
         "parsedAmount": parsed_amount,
         "parseError": parse_error,
         "evidenceStatus": "REQUIRES_RECONCILIATION" if parse_error else "INTERPRETED",

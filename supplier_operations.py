@@ -245,6 +245,7 @@ def _provider_evidence_complete(operation: dict[str, Any]) -> bool:
         and evidence.get("invoiceId") == operation.get("invoiceId")
         and (not operation.get("invoiceNumber") or evidence.get("invoiceNumber") == operation.get("invoiceNumber"))
         and evidence.get("payoutBatchId") == operation.get("payoutBatchId")
+        and str(evidence.get("providerReceiver", "")).casefold() == str(operation.get("recipient", "")).casefold()
         and evidence.get("evidenceStatus") == "INTERPRETED"
         and all(evidence.get(field) for field in ("providerItemId", "transactionId"))
         and operation.get("payoutBatchId")

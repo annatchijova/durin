@@ -50,6 +50,13 @@ def operations_from_payout_response(*, response: dict[str, Any], request_payload
             raise ValueError("PayPal response contains duplicate provider identity")
         if batch_status in {"DENIED", "CANCELED", "CANCELLED"} and str(raw.get("transaction_status", "")).upper() == "SUCCESS":
             raise ValueError("PayPal batch status conflicts with item success")
+        provider_receiver = raw.get("payout_item", {}).get("receiver") if isinstance(raw.get("payout_item"), dict) else None
+        request_receiver = _text(request_item.get("receiver"), "receiver")
+        provider_status = str(raw.get("transaction_status", "")).upper()
+        if provider_receiver is not None and _text(provider_receiver, "provider receiver").casefold() != request_receiver.casefold():
+            raise ValueError("PayPal response receiver conflicts with the approved request")
+        if provider_status == "SUCCESS" and provider_receiver is None:
+            raise ValueError("successful PayPal response is missing receiver")
         seen_response_ids.add(sender_item_id)
         seen_provider_item_ids.add(payout_item_id)
         seen_transaction_ids.add(transaction_id)
@@ -63,7 +70,7 @@ def operations_from_payout_response(*, response: dict[str, Any], request_payload
         operations.append({
             "operationId": transaction_id,
             "invoiceId": sender_item_id,
-            "recipient": request_item.get("receiver"),
+            "recipient": request_receiver,
             "amount": evidence["providerAmountValue"],
             "currency": evidence["providerCurrency"],
             "status": evidence["providerStatus"],
