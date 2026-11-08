@@ -18,11 +18,13 @@ def operations_from_payout_response(*, response: dict[str, Any], request_payload
     if not isinstance(header, dict) or not isinstance(request_items, list) or not request_items:
         raise ValueError("PayPal response and request items are required")
     batch_id = _text(header.get("payout_batch_id"), "payout_batch_id")
+    batch_status = _text(header.get("batch_status"), "batch_status").upper()
     by_sender_id: dict[str, dict[str, Any]] = {}
     for item in request_items:
         if not isinstance(item, dict):
             raise ValueError("request items must be objects")
         sender_item_id = _text(item.get("sender_item_id"), "sender_item_id")
+        _text(item.get("receiver"), "receiver")
         if sender_item_id in by_sender_id:
             raise ValueError("request sender_item_id values must be unique")
         by_sender_id[sender_item_id] = item
@@ -31,6 +33,8 @@ def operations_from_payout_response(*, response: dict[str, Any], request_payload
         raise ValueError("PayPal response items are required")
     operations: list[dict[str, Any]] = []
     seen_response_ids: set[str] = set()
+    seen_provider_item_ids: set[str] = set()
+    seen_transaction_ids: set[str] = set()
     for raw in raw_items:
         if not isinstance(raw, dict):
             raise ValueError("PayPal response items must be objects")
@@ -42,7 +46,13 @@ def operations_from_payout_response(*, response: dict[str, Any], request_payload
             raise ValueError("PayPal response item is not present in the request")
         payout_item_id = _text(raw.get("payout_item_id"), "payout_item_id")
         transaction_id = _text(raw.get("transaction_id"), "transaction_id")
+        if payout_item_id in seen_provider_item_ids or transaction_id in seen_transaction_ids:
+            raise ValueError("PayPal response contains duplicate provider identity")
+        if batch_status in {"DENIED", "CANCELED", "CANCELLED"} and str(raw.get("transaction_status", "")).upper() == "SUCCESS":
+            raise ValueError("PayPal batch status conflicts with item success")
         seen_response_ids.add(sender_item_id)
+        seen_provider_item_ids.add(payout_item_id)
+        seen_transaction_ids.add(transaction_id)
         evidence = preserve_provider_evidence({
             **raw,
             "payout_batch_id": batch_id,
