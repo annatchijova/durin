@@ -17,6 +17,7 @@ from automation import format_money, parse_amount
 
 MAX_ITEMS = 500
 PRICE_ALERT_PERCENT = Decimal("15")
+PENDING_OPERATION_STATES = {"PENDING", "PROCESSING", "ON_HOLD", "UNKNOWN"}
 
 
 def _required_text(value: Any, field: str) -> str:
@@ -141,6 +142,7 @@ def preflight_supplier(
         reasons.append("PRICE_ALERT")
 
     matches = _operation_for(invoice, operations)
+    recognized_amount: str | None = None
     if len(matches) > 1:
         reasons.append("AMBIGUOUS_OPERATION")
         operation_state = "AMBIGUOUS"
@@ -150,11 +152,18 @@ def preflight_supplier(
         operation = matches[0]
         op_amount = parse_amount(operation.get("amount"), "operation.amount")
         op_currency = _currency(operation.get("currency"))
-        if op_amount != amount or op_currency != currency:
+        operation_status = str(operation.get("status", "UNKNOWN")).upper()
+        if op_currency != currency or op_amount > amount:
             reasons.append("OPERATION_MISMATCH")
             operation_state = "MISMATCHED"
+        elif op_amount < amount:
+            reasons.append("PARTIAL_OPERATION")
+            operation_state = "PARTIALLY_MATCHED"
+            recognized_amount = format_money(op_amount)
         else:
-            operation_state = str(operation.get("status", "UNKNOWN")).upper()
+            operation_state = operation_status
+            if operation_status in PENDING_OPERATION_STATES:
+                reasons.append("PENDING_OPERATION")
 
     due_date = None
     if invoice.get("dueDate") is not None:
@@ -189,6 +198,8 @@ def preflight_supplier(
         item["priceChangePercent"] = str(price_change)
     if matches:
         item["operationIds"] = [str(operation.get("operationId", "")) for operation in matches]
+    if recognized_amount is not None:
+        item["recognizedAmount"] = recognized_amount
     return item
 
 

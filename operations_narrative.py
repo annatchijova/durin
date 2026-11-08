@@ -15,6 +15,8 @@ REASON_TEXT = {
     "EXCEEDS_BATCH_LIMIT": "The batch limit would be exceeded.",
     "AMBIGUOUS_OPERATION": "More than one provider operation matches this obligation.",
     "OPERATION_MISMATCH": "A provider operation was found, but its amount or currency does not match.",
+    "PARTIAL_OPERATION": "A provider operation covers only part of the obligation; the remaining amount is unresolved.",
+    "PENDING_OPERATION": "A provider operation exists but its provider status is not final.",
     "OVERDUE": "The obligation passed its due date without a recognized successful settlement.",
 }
 

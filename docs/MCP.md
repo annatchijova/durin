@@ -80,7 +80,8 @@ recalculate amounts or imply that a payment was submitted.
 Pass `observed_at` to the analysis tools or report builder when due dates must
 be evaluated. An invoice whose due date is before that observation timestamp
 gets the explicit `OVERDUE` reason unless a recognized successful operation is
-already present.
+already present. Partial provider operations become `PARTIALLY_MATCHED`, and
+pending provider states remain explicit `PENDING_OPERATION` exceptions.
 
 ## Input shape
 

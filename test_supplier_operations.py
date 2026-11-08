@@ -47,6 +47,21 @@ class SupplierOperationsTests(unittest.TestCase):
         self.assertEqual(result["rows"][0]["operationState"], "MISMATCHED")
         self.assertIn("OPERATION_MISMATCH", result["rows"][0]["reasons"])
 
+    def test_partial_operation_is_not_treated_as_paid(self):
+        operations = [{"operationId": "P-1", "invoiceId": "INV-1", "amount": "40.00", "currency": "USD", "status": "SUCCESS"}]
+        result = analyze_supplier_batch([invoice()], operations, policy=POLICY)
+        row = result["rows"][0]
+        self.assertEqual(row["operationState"], "PARTIALLY_MATCHED")
+        self.assertEqual(row["recognizedAmount"], "40.00")
+        self.assertIn("PARTIAL_OPERATION", row["reasons"])
+
+    def test_pending_operation_is_explicit(self):
+        operations = [{"operationId": "P-1", "invoiceId": "INV-1", "amount": "100.00", "currency": "USD", "status": "PENDING"}]
+        result = analyze_supplier_batch([invoice()], operations, policy=POLICY)
+        row = result["rows"][0]
+        self.assertEqual(row["operationState"], "PENDING")
+        self.assertIn("PENDING_OPERATION", row["reasons"])
+
     def test_metrics_never_claim_execution(self):
         result = analyze_supplier_batch([invoice()], [], policy=POLICY)
         self.assertEqual(result["execution"], "NO_PAYMENT_SUBMITTED")

@@ -137,8 +137,8 @@ technical fragment waiting to be replaced.
 
 **Required capabilities:** supplier organization, invoice identity, evidence
 fields, duplicate detection, typo detection, price-history alerts, limits,
-partial/mismatched operation detection, overdue items, batch totals, reports,
-and human review markers.
+partial/mismatched/pending operation detection, overdue items, batch totals,
+reports, and human review markers.
 
 **Adversarial gate:** prompt injection inside an invoice, contradictory contract
 term, duplicate attachment, altered source hash, duplicate invoices, two
