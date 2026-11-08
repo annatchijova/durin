@@ -79,14 +79,12 @@ class PayPalSandboxClient:
         authorization_id = payload.get("durin", {}).get("authorizationId") if isinstance(payload.get("durin"), dict) else None
         from authorization_ledger import AuthorizationLedger
         ledger = AuthorizationLedger.from_env()
+        if authorization_id and ledger is None:
+            raise ValueError("durable authorization ledger is required for authorized payout")
         if authorization_id and ledger is not None:
             ledger.reserve_submission(authorization_id, payload, datetime.now(timezone.utc).isoformat())
             return self._submit_payout(payload, sender_batch_id, authorization_id, ledger)
         with _PAYOUT_SUBMISSION_LOCK:
-            if authorization_id:
-                from paypal_payouts import authorization_was_submitted
-                if authorization_was_submitted(authorization_id):
-                    raise ValueError("authorization has already been consumed")
             result = self._submit_payout(payload, sender_batch_id, authorization_id, None)
             return result
 

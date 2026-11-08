@@ -46,8 +46,9 @@ The application deployment should set stable secret material in
 keys are process-scoped and serialized artifacts cannot be verified after a
 process restart.
 
-For multi-process execution, set `DURIN_AUTHORIZATION_LEDGER_PATH` to a shared
-SQLite file on durable storage. The ledger uses a unique authorization and
+For any authorized payout execution, set `DURIN_AUTHORIZATION_LEDGER_PATH` to
+a shared SQLite file on durable storage. The client refuses an authorized
+request when this path is absent. The ledger uses a unique authorization and
 proposal key, WAL, busy timeouts, and `BEGIN IMMEDIATE` transitions:
 
 ```text

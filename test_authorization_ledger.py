@@ -92,6 +92,19 @@ class AuthorizationLedgerTests(unittest.TestCase):
                 client.create_payout(payload, payload["sender_batch_header"]["sender_batch_id"])
             self.assertEqual(len(calls), 2)
 
+    def test_authorized_client_refuses_without_durable_ledger(self):
+        created = create_immutable_proposal(
+            accepted=[{"invoiceId": "INV-N", "recipient": "supplier@example.com", "amount": "10.00", "currency": "USD"}],
+            currency="USD", total_amount="10.00", policy_version="v1", evidence_refs=[],
+            proposal_id="no-ledger-p", created_at="2026-11-08T10:00:00Z", expires_at="2026-11-09T00:00:00Z",
+        )
+        approval = approve_proposal(proposal=created["proposal"], expected_digest=created["proposalDigest"], approver_id="merchant", approved_at="2026-11-08T10:05:00Z")
+        payload = build_payout_request(proposal=created["proposal"], proposal_digest_value=created["proposalDigest"], authorization=approval, observed_at="2026-11-08T10:10:00Z")
+        with patch.dict("os.environ", {}, clear=True):
+            client = PayPalSandboxClient(PayPalSandboxConfig("id", "secret", "http://127.0.0.1"), opener=lambda *_: None)
+            with self.assertRaisesRegex(ValueError, "durable authorization ledger"):
+                client.create_payout(payload, payload["sender_batch_header"]["sender_batch_id"])
+
 
 if __name__ == "__main__":
     unittest.main()
