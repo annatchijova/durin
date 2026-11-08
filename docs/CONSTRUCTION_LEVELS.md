@@ -246,10 +246,11 @@ and incoming customer collections without confusing their semantics.
 
 ## Current position
 
-Durin currently has the bounded MCP, pure automation engine, supplier preflight,
-metrics, and agent-boundary documentation. These are the core of Level 1, but
-Level 1 is not complete until the canonical supplier records, report persistence,
-and end-to-end batch report are connected.
+Level 1 is complete as an offline supplier operations desk: the bounded MCP,
+pure automation engine, supplier preflight, metrics, canonical report, source
+hashes, atomic persistence, tracked fixtures, and end-to-end command are present
+and tested. Level 2 is the next coherent product state: authorized source
+ingestion and AI extraction with provenance.
 
 ## Open constraints
 
