@@ -11,6 +11,10 @@ The audit covered `source_ingestion`, `source_workflow`, `supplier_operations`,
 `automation`, `authorization`, `mcp_server`, `paypal_payouts`,
 `paypal_reconciliation`, and `paypal_client`.
 
+Skills applied: `red-team-auditing`, `variant-analysis`,
+`offensive-business-logic`, `agent-trust-boundaries`, `deterministic-core`,
+`falsifiable-testing`, and `audit-before-patch`.
+
 Threat model: an attacker or untrusted upstream integration can control source
 objects, extraction candidates, operation observations, provider responses, or
 serialized objects passed into application boundaries. Environment-controlled
