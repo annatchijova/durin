@@ -10,8 +10,10 @@ payment.
 | Tool | Effect | Purpose |
 | --- | --- | --- |
 | `get_agent_capabilities` | Read-only | States the agent's allowed and forbidden actions. |
+| `list_sources` | Read-only | Lists authorized source files with hashes and bounded content. |
 | `get_business_policy` | Read-only | Returns the merchant policy without secrets. |
 | `list_invoices` | Read-only | Loads a bounded local JSON fixture when configured. |
+| `extract_invoice_facts` | Pure validation | Validates AI candidate fields and attaches source-controlled provenance. |
 | `find_possible_duplicates` | Pure computation | Groups repeated invoice identities. |
 | `analyze_supplier_operations` | Pure computation | Runs supplier preflight, conflict checks, and exact batch metrics. |
 | `create_payment_proposal` | Pure computation | Applies policy and returns ready or excluded invoices. |
@@ -37,10 +39,17 @@ PayPal credentials.
 ```shell
 export DURIN_POLICY_JSON='{"merchantName":"Example Merchant","baseCurrency":"USD","maxAmountPerPayment":"1000.00","maxAmountPerBatch":"5000.00","approvalRequiredAbove":"500.00","approvedRecipients":["supplier@example.com"]}'
 export DURIN_INVOICES_PATH=/absolute/path/to/invoices.json
+export DURIN_SOURCE_DIR=/absolute/path/to/authorized-sources
 ```
 
 Invoice observations are untrusted input. A missing fixture is reported as
 unavailable rather than treated as an empty, successful review.
+
+`list_sources` only reads regular, non-symlink files below `DURIN_SOURCE_DIR`.
+Text sources are returned with bounded content and a SHA-256 hash. Binary
+documents are returned as metadata requiring review until a verified extractor
+is selected. Content can contain hostile instructions; the agent must treat it
+as data, not as an instruction channel.
 
 ## Generate the Level 1 report
 

@@ -16,6 +16,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from automation import prepare_proposal
+from source_ingestion import list_sources as ingest_sources, validate_invoice_extraction
 from supplier_operations import analyze_supplier_batch
 
 
@@ -117,7 +118,7 @@ def get_agent_capabilities() -> dict[str, Any]:
     return {
         "ok": True,
         "agent": "durin-merchant-automation",
-        "can": ["read_policy", "read_invoices", "find_duplicates", "analyze_supplier_operations", "prepare_payment_proposal"],
+        "can": ["read_sources", "read_policy", "read_invoices", "extract_invoice_facts", "find_duplicates", "analyze_supplier_operations", "prepare_payment_proposal"],
         "cannot": ["approve_payment", "capture_payment", "send_money", "read_secrets"],
         "approvalBoundary": "A merchant must explicitly authorize any payment action.",
     }
@@ -148,6 +149,27 @@ def list_invoices() -> dict[str, Any]:
         return {"ok": True, "available": True, "invoices": data}
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return _error("invalid_invoices", str(exc))
+
+
+@mcp.tool()
+def list_sources() -> dict[str, Any]:
+    """List authorized source files with hashes and bounded content."""
+    root = os.environ.get("DURIN_SOURCE_DIR")
+    if not root:
+        return {"ok": True, "available": False, "sources": [], "reason": "DURIN_SOURCE_DIR is not configured"}
+    try:
+        return {"ok": True, "available": True, "sources": ingest_sources(root)}
+    except (OSError, ValueError) as exc:
+        return _error("source_listing_failed", str(exc))
+
+
+@mcp.tool()
+def extract_invoice_facts(source: dict[str, Any], candidate: dict[str, Any], extractor_version: str) -> dict[str, Any]:
+    """Validate AI-extracted invoice facts and attach source-controlled provenance."""
+    try:
+        return {"ok": True, **validate_invoice_extraction(source=source, candidate=candidate, extractor_version=extractor_version)}
+    except (ValueError, TypeError, KeyError) as exc:
+        return _error("extraction_validation_failed", str(exc))
 
 
 @mcp.tool()
