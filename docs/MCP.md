@@ -17,6 +17,7 @@ payment.
 | `find_possible_duplicates` | Pure computation | Groups repeated invoice identities. |
 | `analyze_supplier_operations` | Pure computation | Runs supplier preflight, conflict checks, and exact batch metrics. |
 | `generate_operations_report` | Pure computation | Returns fixed metrics plus a separate business-language explanation layer. |
+| `build_source_report` | Pure computation | Validates AI extraction candidates against hashed sources and builds the deterministic supplier report. |
 | `create_payment_proposal` | Pure computation | Applies policy and returns ready or excluded invoices. |
 | `seal_payment_proposal` | Pure computation | Binds an eligible proposal to a digest, policy version, evidence, and expiry; never approves or submits. |
 

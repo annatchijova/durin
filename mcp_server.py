@@ -20,6 +20,7 @@ from source_ingestion import list_sources as ingest_sources, validate_invoice_ex
 from supplier_operations import analyze_supplier_batch
 from operations_narrative import build_operations_report
 from authorization import create_immutable_proposal
+from source_workflow import build_report_from_extractions
 
 
 mcp = FastMCP("durin-merchant-automation")
@@ -255,6 +256,31 @@ def generate_operations_report(
         return {"ok": True, "analysis": analysis, "report": build_operations_report(analysis)}
     except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         return _error("operations_report_failed", str(exc))
+
+
+@mcp.tool()
+def build_source_report(
+    sources: list[dict[str, Any]],
+    candidates_by_source_id: dict[str, dict[str, Any]],
+    operations: list[dict[str, Any]],
+    report_id: str,
+    observed_at: str,
+    extractor_version: str,
+) -> dict[str, Any]:
+    """Validate AI extraction candidates and build a provenance-bound report."""
+    try:
+        report = build_report_from_extractions(
+            policy=_load_policy(),
+            sources=sources,
+            candidates_by_source_id=candidates_by_source_id,
+            operations=operations,
+            report_id=report_id,
+            observed_at=observed_at,
+            extractor_version=extractor_version,
+        )
+        return {"ok": True, "report": report}
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        return _error("source_report_failed", str(exc))
 
 
 if __name__ == "__main__":

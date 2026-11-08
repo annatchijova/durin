@@ -195,17 +195,18 @@ remain independent. It can be added without invalidating the supplier product.
 ## Current position
 
 The repository currently contains the deterministic supplier engine, MCP, source
-hashing, report persistence, fixtures, and agent-boundary documentation. It is
-not Level 1 yet: AI source ingestion, provenance-preserving extraction, and the
-complete source-to-report workflow are still open. Level 2 PayPal integration is
-mandatory after Level 1 and is not optional scope.
+hashing, provenance-preserving extraction validation, a source-to-report
+orchestrator, report persistence, fixtures, and agent-boundary documentation. It
+is not Level 1 yet: the authorized source connector and a production AI
+extraction provider are still open. Level 2 PayPal integration is mandatory
+after Level 1 and is not optional scope.
 
 ## Open constraints
 
 | Constraint | State | Revisit trigger |
 | --- | --- | --- |
 | First authorized email/source boundary | Open, unresolved | Required to complete Level 1. |
-| AI extraction provider and structured output contract | Open, unresolved | Required to complete Level 1. |
+| AI extraction provider and structured output contract | Validation boundary implemented; provider open | Required to complete Level 1. |
 | PayPal Payouts Sandbox access and capability | Open, unresolved | Required to start Level 2. |
 | Payout settlement evidence | Open, unresolved | Resolve before claiming final settlement. |
 | Currency conversion policy | Open, unresolved | Required before multi-currency supplier batches. |
