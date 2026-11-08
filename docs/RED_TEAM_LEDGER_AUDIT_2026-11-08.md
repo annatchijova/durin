@@ -27,8 +27,8 @@ APPROVED -> IN_FLIGHT -> SUBMITTED
 The PayPal HTTP call is not inside the SQLite transaction. The ledger reserves
 the authorization before the call, and records `SUBMITTED` only after a
 successful provider response. An exception or timeout leaves `IN_FLIGHT`, so
-recovery must query PayPal with the same `sender_batch_id` before deciding what
-to do.
+recovery must use the same idempotency identity and a provider-supported lookup
+to obtain the authoritative payout batch response before deciding what to do.
 
 ## Tests executed
 
@@ -70,8 +70,10 @@ used as a production multi-worker control.
 
 If PayPal accepts the request and the process dies before `SUBMITTED` commits,
 the row remains `IN_FLIGHT`. This is intentional honest degradation. The
-recovery operation is a PayPal lookup by the same `sender_batch_id`; the system
-does not claim exactly-once delivery across the external provider.
+recovery operation is a provider-supported lookup tied to the same idempotency
+identity, followed by `finalize_payout_recovery()` with the authoritative
+`payout_batch_id`; the system does not claim exactly-once delivery across the
+external provider.
 
 ### R-LEDGER-03 — Shared SQLite storage must itself be suitable for deployment
 

@@ -128,6 +128,15 @@ class AuthorizationLedger:
             )
             connection.commit()
 
+    def recover_submission(self, authorization_id: str, payload: dict[str, Any], provider_response: dict[str, Any], provider_batch_id: str, now: str) -> None:
+        """Finalize an uncertain request after an independent provider lookup."""
+        if not isinstance(provider_response, dict) or not isinstance(provider_batch_id, str) or not provider_batch_id.strip():
+            raise ValueError("provider recovery evidence is incomplete")
+        header = provider_response.get("batch_header")
+        if not isinstance(header, dict) or header.get("payout_batch_id") != provider_batch_id:
+            raise ValueError("provider recovery batch identity does not match")
+        self.mark_submitted(authorization_id, payload, provider_response, now)
+
 
 def _required(value: dict[str, Any], field: str) -> str:
     result = value.get(field)

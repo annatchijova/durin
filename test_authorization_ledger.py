@@ -51,6 +51,16 @@ class AuthorizationLedgerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "already been submitted"):
                 ledger.reserve_submission(self.authorization["authorizationId"], payload, "2026-11-08T10:09:00Z")
 
+    def test_in_flight_recovery_requires_matching_provider_batch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ledger = AuthorizationLedger(Path(directory) / "ledger.sqlite3")
+            ledger.record_approval(self.authorization)
+            payload = {"sender_batch_header": {"sender_batch_id": "B-2"}, "items": []}
+            ledger.reserve_submission(self.authorization["authorizationId"], payload, "2026-11-08T10:06:00Z")
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                ledger.recover_submission(self.authorization["authorizationId"], payload, {"batch_header": {"payout_batch_id": "OTHER"}}, "B-2", "2026-11-08T10:07:00Z")
+            ledger.recover_submission(self.authorization["authorizationId"], payload, {"batch_header": {"payout_batch_id": "B-2", "batch_status": "PENDING"}}, "B-2", "2026-11-08T10:08:00Z")
+
     def test_different_payload_with_same_authorization_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             ledger = AuthorizationLedger(Path(directory) / "ledger.sqlite3")

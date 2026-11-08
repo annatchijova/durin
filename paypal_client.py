@@ -109,6 +109,17 @@ class PayPalSandboxClient:
             raise ValueError("payout_batch_id is required and bounded")
         return self._json_request(f"/v1/payments/payouts/{urllib.parse.quote(payout_batch_id, safe='')}", method="GET")
 
+    def finalize_payout_recovery(self, payload: dict[str, Any], provider_response: dict[str, Any], provider_batch_id: str) -> None:
+        """Finalize an IN_FLIGHT ledger row after a provider batch lookup."""
+        authorization_id = payload.get("durin", {}).get("authorizationId") if isinstance(payload.get("durin"), dict) else None
+        if not authorization_id:
+            raise ValueError("payload authorization identity is required")
+        from authorization_ledger import AuthorizationLedger
+        ledger = AuthorizationLedger.from_env()
+        if ledger is None:
+            raise ValueError("durable authorization ledger is required for recovery")
+        ledger.recover_submission(authorization_id, payload, provider_response, provider_batch_id, datetime.now(timezone.utc).isoformat())
+
     def _access_token(self) -> str:
         raw = f"{self.config.client_id}:{self.config.client_secret}".encode()
         response = self._request(

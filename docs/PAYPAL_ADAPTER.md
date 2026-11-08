@@ -55,8 +55,10 @@ APPROVED -> IN_FLIGHT -> SUBMITTED
 ```
 
 An uncertain HTTP result remains `IN_FLIGHT`; the recovery path must query the
-same PayPal `sender_batch_id` before any further action. The ledger does not
-claim exactly-once delivery across PayPal: it provides durable local state and
+same provider batch identity before any further action. Call
+`finalize_payout_recovery()` only with the response returned by that independent
+lookup and the matching `payout_batch_id`. The ledger does not claim
+exactly-once delivery across PayPal: it provides durable local state and
 idempotent request coordination.
 
 `paypal_client.py` contains the application-side Sandbox client. It is
