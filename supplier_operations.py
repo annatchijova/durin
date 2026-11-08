@@ -8,7 +8,7 @@ duplicate detection, conflicts, preflight, and reporting reusable.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -39,6 +39,14 @@ def _date(value: Any, field: str) -> date:
         return date.fromisoformat(_required_text(value, field))
     except ValueError as exc:
         raise ValueError(f"{field} must be an ISO date") from exc
+
+
+def _observed_date(value: Any) -> date:
+    text = _required_text(value, "observed_at")
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+    except ValueError as exc:
+        raise ValueError("observed_at must be an ISO timestamp") from exc
 
 
 def _identity(invoice: dict[str, Any]) -> tuple[str, str, str, str]:
@@ -89,7 +97,10 @@ def _operation_for(invoice: dict[str, Any], operations: list[dict[str, Any]]) ->
     return matches
 
 
-def preflight_supplier(invoice: dict[str, Any], *, policy: dict[str, Any], operations: list[dict[str, Any]], seen: set[tuple[str, str, str, str]]) -> dict[str, Any]:
+def preflight_supplier(
+    invoice: dict[str, Any], *, policy: dict[str, Any], operations: list[dict[str, Any]],
+    seen: set[tuple[str, str, str, str]], observed_date: date | None = None,
+) -> dict[str, Any]:
     """Evaluate one supplier obligation without submitting a payment."""
     invoice_id = _required_text(invoice.get("invoiceId"), "invoiceId")
     supplier = _required_text(invoice.get("supplier"), "supplier")
@@ -145,6 +156,18 @@ def preflight_supplier(invoice: dict[str, Any], *, policy: dict[str, Any], opera
         else:
             operation_state = str(operation.get("status", "UNKNOWN")).upper()
 
+    due_date = None
+    if invoice.get("dueDate") is not None:
+        due_date = _date(invoice.get("dueDate"), "dueDate")
+    overdue = bool(due_date and observed_date and due_date < observed_date and operation_state not in {"SUCCESS", "COMPLETED", "PAID"})
+    checks.append({
+        "key": "due_date",
+        "status": "alert" if overdue else "pass",
+        "detail": "overdue" if overdue else (f"due {due_date.isoformat()}" if due_date else "no due date"),
+    })
+    if overdue:
+        reasons.append("OVERDUE")
+
     item = {
         "invoiceId": invoice_id,
         "supplier": supplier,
@@ -157,6 +180,8 @@ def preflight_supplier(invoice: dict[str, Any], *, policy: dict[str, Any], opera
         "checks": checks,
         "status": "EXCLUDED" if reasons else "READY_FOR_REVIEW",
     }
+    if due_date is not None:
+        item["dueDate"] = due_date.isoformat()
     if typo:
         item["typoSuggestion"] = typo
     if average is not None:
@@ -167,14 +192,21 @@ def preflight_supplier(invoice: dict[str, Any], *, policy: dict[str, Any], opera
     return item
 
 
-def analyze_supplier_batch(invoices: list[dict[str, Any]], operations: list[dict[str, Any]], *, policy: dict[str, Any]) -> dict[str, Any]:
+def analyze_supplier_batch(
+    invoices: list[dict[str, Any]], operations: list[dict[str, Any]], *, policy: dict[str, Any],
+    observed_at: str | None = None,
+) -> dict[str, Any]:
     """Return preflight rows and exact metrics for a supplier batch."""
     if not isinstance(invoices, list) or len(invoices) > MAX_ITEMS:
         raise ValueError("invoices must be a bounded array")
     if not isinstance(operations, list) or len(operations) > MAX_ITEMS:
         raise ValueError("operations must be a bounded array")
     seen: set[tuple[str, str, str, str]] = set()
-    rows = [preflight_supplier(invoice, policy=policy, operations=operations, seen=seen) for invoice in invoices]
+    observed_date = _observed_date(observed_at) if observed_at is not None else None
+    rows = [
+        preflight_supplier(invoice, policy=policy, operations=operations, seen=seen, observed_date=observed_date)
+        for invoice in invoices
+    ]
     reason_counts = Counter(reason for row in rows for reason in row["reasons"])
     amounts = defaultdict(lambda: Decimal("0"))
     for row in rows:

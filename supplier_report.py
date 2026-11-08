@@ -62,7 +62,7 @@ def build_supplier_report(
         raise ValueError("observed_at is required and bounded")
     if not isinstance(source_manifest, list) or not source_manifest:
         raise ValueError("source_manifest is required")
-    analysis = analyze_supplier_batch(invoices, operations, policy=policy)
+    analysis = analyze_supplier_batch(invoices, operations, policy=policy, observed_at=observed_at)
     return {
         "schemaVersion": REPORT_SCHEMA_VERSION,
         "reportId": report_id,

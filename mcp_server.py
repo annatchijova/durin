@@ -236,11 +236,12 @@ def seal_payment_proposal(
 
 @mcp.tool()
 def analyze_supplier_operations(
-    invoices: list[dict[str, Any]], operations: list[dict[str, Any]] | None = None
+    invoices: list[dict[str, Any]], operations: list[dict[str, Any]] | None = None,
+    observed_at: str | None = None,
 ) -> dict[str, Any]:
     """Run supplier preflight, conflict detection, and exact batch metrics."""
     try:
-        result = analyze_supplier_batch(invoices, operations or [], policy=_load_policy())
+        result = analyze_supplier_batch(invoices, operations or [], policy=_load_policy(), observed_at=observed_at)
         return {"ok": True, **result}
     except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         return _error("operations_analysis_failed", str(exc))
@@ -248,11 +249,12 @@ def analyze_supplier_operations(
 
 @mcp.tool()
 def generate_operations_report(
-    invoices: list[dict[str, Any]], operations: list[dict[str, Any]] | None = None
+    invoices: list[dict[str, Any]], operations: list[dict[str, Any]] | None = None,
+    observed_at: str | None = None,
 ) -> dict[str, Any]:
     """Return deterministic supplier metrics plus a separate explanation layer."""
     try:
-        analysis = analyze_supplier_batch(invoices, operations or [], policy=_load_policy())
+        analysis = analyze_supplier_batch(invoices, operations or [], policy=_load_policy(), observed_at=observed_at)
         return {"ok": True, "analysis": analysis, "report": build_operations_report(analysis)}
     except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         return _error("operations_report_failed", str(exc))

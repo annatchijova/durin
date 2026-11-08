@@ -15,7 +15,7 @@ payment.
 | `list_invoices` | Read-only | Loads a bounded local JSON fixture when configured. |
 | `extract_invoice_facts` | Pure validation | Validates AI candidate fields and attaches source-controlled provenance. |
 | `find_possible_duplicates` | Pure computation | Groups repeated invoice identities. |
-| `analyze_supplier_operations` | Pure computation | Runs supplier preflight, conflict checks, and exact batch metrics. |
+| `analyze_supplier_operations` | Pure computation | Runs supplier preflight, conflict checks, overdue detection, and exact batch metrics. |
 | `generate_operations_report` | Pure computation | Returns fixed metrics plus a separate business-language explanation layer. |
 | `build_source_report` | Pure computation | Validates AI extraction candidates against hashed sources and builds the deterministic supplier report. |
 | `create_payment_proposal` | Pure computation | Applies policy and returns ready or excluded invoices. |
@@ -76,6 +76,11 @@ contains a duplicate, a possible recipient typo, and an over-limit obligation so
 the report demonstrates the exception path rather than a uniform green result.
 The optional CSV export is derived from those same fixed rows; it does not
 recalculate amounts or imply that a payment was submitted.
+
+Pass `observed_at` to the analysis tools or report builder when due dates must
+be evaluated. An invoice whose due date is before that observation timestamp
+gets the explicit `OVERDUE` reason unless a recognized successful operation is
+already present.
 
 ## Input shape
 

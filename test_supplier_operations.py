@@ -52,6 +52,20 @@ class SupplierOperationsTests(unittest.TestCase):
         self.assertEqual(result["execution"], "NO_PAYMENT_SUBMITTED")
         self.assertTrue(result["humanApprovalRequired"])
 
+    def test_overdue_invoice_is_explicit_against_observation_date(self):
+        item = invoice()
+        item["dueDate"] = "2026-11-01"
+        result = analyze_supplier_batch([item], [], policy=POLICY, observed_at="2026-11-08T12:00:00Z")
+        self.assertIn("OVERDUE", result["rows"][0]["reasons"])
+        self.assertEqual(result["rows"][0]["dueDate"], "2026-11-01")
+
+    def test_paid_invoice_is_not_marked_overdue(self):
+        item = invoice()
+        item["dueDate"] = "2026-11-01"
+        operations = [{"operationId": "P-1", "invoiceId": "INV-1", "amount": "100.00", "currency": "USD", "status": "SUCCESS"}]
+        result = analyze_supplier_batch([item], operations, policy=POLICY, observed_at="2026-11-08T12:00:00Z")
+        self.assertNotIn("OVERDUE", result["rows"][0]["reasons"])
+
 
 if __name__ == "__main__":
     unittest.main()
