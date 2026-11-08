@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from supplier_report import build_supplier_report_from_files, write_report
+from supplier_report import build_supplier_report_from_files, write_csv, write_report
 
 
 def main() -> int:
@@ -19,6 +19,7 @@ def main() -> int:
     parser.add_argument("--invoices", required=True)
     parser.add_argument("--operations", required=True)
     parser.add_argument("--report", required=True)
+    parser.add_argument("--csv", help="optional CSV export path")
     parser.add_argument("--report-id", required=True)
     parser.add_argument("--observed-at", required=True)
     args = parser.parse_args()
@@ -30,6 +31,8 @@ def main() -> int:
         observed_at=args.observed_at,
     )
     write_report(args.report, report)
+    if args.csv:
+        write_csv(args.csv, report)
     print(json.dumps({"ok": True, "report": args.report, "metrics": report["metrics"]}, sort_keys=True))
     return 0
 

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from supplier_report import build_supplier_report, build_supplier_report_from_files, write_report
+from supplier_report import build_supplier_report, build_supplier_report_from_files, report_to_csv, write_report
 
 
 POLICY = {
@@ -58,6 +58,20 @@ class SupplierReportTests(unittest.TestCase):
             destination = Path(directory) / "reports" / "level1.json"
             write_report(destination, {"schemaVersion": 1, "ok": True})
             self.assertEqual(json.loads(destination.read_text(encoding="utf-8"))["ok"], True)
+
+    def test_csv_export_preserves_exception_and_operation_state(self):
+        report = build_supplier_report(
+            policy=POLICY,
+            invoices=[INVOICE],
+            operations=[],
+            source_manifest=[{"kind": "test", "source": "memory", "source_hash": "abc", "validation_status": "LOADED"}],
+            report_id="R-1",
+            observed_at="2026-11-08T12:00:00Z",
+        )
+        csv_text = report_to_csv(report)
+        self.assertIn("invoice_id,supplier,invoice_number", csv_text)
+        self.assertIn("INV-1,Acme,A-1", csv_text)
+        self.assertIn("READY_FOR_REVIEW,UNMATCHED", csv_text)
 
 
 if __name__ == "__main__":

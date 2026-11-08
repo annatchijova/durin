@@ -64,6 +64,7 @@ python3 scripts/run_level1_report.py \
   --invoices examples/level1/invoices.json \
   --operations examples/level1/operations.json \
   --report /tmp/durin-level1-report.json \
+  --csv /tmp/durin-level1-report.csv \
   --report-id level1-demo \
   --observed-at 2026-11-08T12:00:00Z
 ```
@@ -72,6 +73,8 @@ The report contains the `PAYABLE` flow, source hashes, supplier rows, exact
 metrics, exception reasons, and `NO_PAYMENT_SUBMITTED`. The example deliberately
 contains a duplicate, a possible recipient typo, and an over-limit obligation so
 the report demonstrates the exception path rather than a uniform green result.
+The optional CSV export is derived from those same fixed rows; it does not
+recalculate amounts or imply that a payment was submitted.
 
 ## Input shape
 

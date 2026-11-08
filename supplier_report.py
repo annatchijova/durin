@@ -6,6 +6,8 @@ import hashlib
 import json
 import os
 import tempfile
+import csv
+import io
 from pathlib import Path
 from typing import Any
 
@@ -111,6 +113,73 @@ def write_report(path: str | os.PathLike[str], report: dict[str, Any]) -> None:
     handle, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", dir=destination.parent, text=True)
     try:
         with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, destination)
+    except Exception:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+CSV_COLUMNS = (
+    "invoice_id",
+    "supplier",
+    "invoice_number",
+    "recipient",
+    "amount",
+    "currency",
+    "status",
+    "operation_state",
+    "reasons",
+    "operation_ids",
+)
+
+
+def report_to_csv(report: dict[str, Any]) -> str:
+    """Render fixed report rows as an escaped, spreadsheet-friendly CSV.
+
+    This is an export of the deterministic report, not a second calculation.
+    The CSV deliberately carries exception reasons and operation state so a
+    merchant cannot mistake an export for a list of completed payments.
+    """
+    rows = report.get("rows")
+    if not isinstance(rows, list):
+        raise ValueError("report rows must be an array")
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=CSV_COLUMNS, extrasaction="ignore", lineterminator="\r\n")
+    writer.writeheader()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("report rows must contain objects")
+        writer.writerow(
+            {
+                "invoice_id": row.get("invoiceId", ""),
+                "supplier": row.get("supplier", ""),
+                "invoice_number": row.get("invoiceNumber", ""),
+                "recipient": row.get("recipient", ""),
+                "amount": row.get("amount", ""),
+                "currency": row.get("currency", ""),
+                "status": row.get("status", ""),
+                "operation_state": row.get("operationState", ""),
+                "reasons": ";".join(str(item) for item in row.get("reasons", [])),
+                "operation_ids": ";".join(str(item) for item in row.get("operationIds", [])),
+            }
+        )
+    return output.getvalue()
+
+
+def write_csv(path: str | os.PathLike[str], report: dict[str, Any]) -> None:
+    """Write the report export atomically using the same boundary as JSON."""
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    payload = report_to_csv(report)
+    handle, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", dir=destination.parent, text=True)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8", newline="") as stream:
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
