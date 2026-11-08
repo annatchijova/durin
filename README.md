@@ -17,10 +17,11 @@ communications in different places while PayPal records the resulting activity
 separately. They have to answer questions that are easy to miss under time
 pressure:
 
-- Does this issued invoice have a corresponding PayPal operation?
-- Was the operation completed, refunded, disputed, or left pending?
-- Do the amount, currency, customer, and invoice reference match?
-- What fees and reversals affect the period's result?
+- Is this supplier invoice new, duplicated, or already paid?
+- Does the supplier identity and destination match the merchant's records?
+- Is the amount within policy and consistent with payment history?
+- Is the operation completed, returned, disputed, or still pending?
+- What does the merchant need to review before authorizing a payout?
 - Which conclusions require human review?
 
 The payment button is not the difficult part. The difficult part is knowing
@@ -33,8 +34,9 @@ Durin gives a merchant one controlled operations workflow:
 1. The agent collects authorized invoices, contracts, communications, and policy.
 2. The MCP exposes bounded tools for reading and comparison.
 3. AI extracts candidate facts with source evidence and review requirements.
-4. Deterministic automation matches obligations with PayPal operations.
-5. Durin reports completed, pending, refunded, unmatched, and ambiguous cases.
+4. Deterministic automation organizes suppliers, detects duplicates, resolves
+   conflicts, and matches obligations with payment operations.
+5. Durin reports ready, blocked, pending, returned, unmatched, and ambiguous cases.
 6. The merchant reviews any operation that requires approval; PayPal remains the
    source of provider activity.
 
@@ -100,7 +102,7 @@ official developer documentation is the source of truth for API behavior:
 ### In scope
 
 - Merchant financial operations and reconciliation.
-- `RECEIVABLE` invoices and PayPal collections as the first complete flow.
+- `PAYABLE` supplier obligations and PayPal payout preparation as the first complete flow.
 - Invoice, contract, and communication observations.
 - Deterministic matching, balances, and duplicate checks.
 - MCP tools for the agent.
@@ -113,13 +115,13 @@ official developer documentation is the source of truth for API behavior:
 - Blockchain or smart-contract payments.
 - Wallets, tokens, RPCs, and on-chain verification.
 - An AI-controlled private key or unattended payment capture.
-- `PAYABLE` until the receivable domain and the relevant PayPal capability are established.
+- `RECEIVABLE` until the supplier domain and the relevant PayPal payout capability are established.
 - A full accounting replacement.
 
 ## Repository status
 
 Durin is being rebuilt as a standalone application. The first complete financial
-domain is `RECEIVABLE`; `PAYABLE` is a separate later domain. The current
+domain is `PAYABLE`; `RECEIVABLE` is a separate later domain. The current
 implementation priority is MCP, agent capabilities, deterministic automation,
 provenance, reconciliation, and then PayPal integration. Frontend code will be
 selected and added later from the repositories designated for this project.
