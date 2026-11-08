@@ -103,10 +103,10 @@ official developer documentation is the source of truth for API behavior:
 
 - Merchant financial operations and reconciliation.
 - `PAYABLE` supplier obligations and PayPal payout preparation as the first complete flow.
-- Invoice, contract, and communication observations.
+- Invoice, contract, and communication observations with AI extraction and provenance.
 - Deterministic matching, balances, and duplicate checks.
 - MCP tools for the agent.
-- PayPal Sandbox operation and status integration.
+- PayPal Payouts Sandbox integration as the mandatory next complete level.
 - Audit-friendly operational records.
 - Explainable period reports.
 
@@ -120,11 +120,12 @@ official developer documentation is the source of truth for API behavior:
 
 ## Repository status
 
-Durin is being rebuilt as a standalone application. The first complete financial
-domain is `PAYABLE`; `RECEIVABLE` is a separate later domain. The current
-implementation priority is MCP, agent capabilities, deterministic automation,
-provenance, reconciliation, and then PayPal integration. Frontend code will be
-selected and added later from the repositories designated for this project.
+Durin is being rebuilt as a standalone application. The first complete product
+level is supplier intelligence: authorized source ingestion, AI extraction,
+provenance, deterministic automation, reconciliation, metrics, and reports.
+The mandatory second level integrates PayPal Payouts end to end. `RECEIVABLE`
+is a separate post-hackathon domain. Frontend code will be selected and added
+later from the repositories designated for this project.
 
 See [construction levels](docs/CONSTRUCTION_LEVELS.md) for the destination,
 cross-level contracts, adversarial gates, and open constraints.

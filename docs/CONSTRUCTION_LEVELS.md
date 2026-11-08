@@ -3,14 +3,13 @@
 This document uses destination-driven construction. A level is a complete,
 useful state of Durin, not a technical phase and not a feature inventory.
 
-Every level must be useful on its own, compatible with the final product, built
-with the final authority/provenance/financial/recovery invariants already
-present, independently adversarially reviewed, and safe to stop at without
-making the previous level disposable.
+Every level must be useful on its own, compatible with the final product, and
+built with the final authority, provenance, financial, recovery, and uncertainty
+invariants already present. If time runs out, construction stops at the highest
+complete level reached. It does not downgrade a level into a disposable demo.
 
-The post-hackathon plan continues beyond any level reached during the event. The
-goal is not to reach the last level in four days. The goal is to finish the
-highest complete level that time and access allow.
+The post-hackathon plan continues beyond the level reached during the event. We
+do not need to reach the last level now.
 
 ## Destination
 
@@ -30,10 +29,6 @@ what is ready, blocked, duplicated, contradictory, overdue, or already paid.
 
 `RECEIVABLE`—customer invoices and collections—is a separate future domain. It
 must not share a balance formula or overloaded status field with `PAYABLE`.
-
-PayPal Payouts is the planned execution adapter for the primary domain. Until
-that adapter is implemented, Durin can still provide a complete offline
-supplier-operations level using imported operation records.
 
 ## Invariants inherited by every level
 
@@ -117,148 +112,102 @@ and expiry. Any material change invalidates the approval.
 
 ## Complete levels
 
-### Level 1 — Supplier operations desk
-
-**Complete product state:** A merchant imports a bounded batch of supplier
-invoices and operation records, and receives a usable operations report without
-calling an external payment provider.
-
-The complete flow is:
-
-```text
-supplier records + invoices + policy + operation records
-                         ->
-normalization + preflight + duplicate/conflict detection
-                         ->
-supplier queue + exact metrics + exception report
-```
-
-It preserves the Vértice workflow: supplier organization, invoice identity,
-recipient checks, duplicate detection, typo detection, price-history alerts,
-limits, partial/mismatched operations, overdue items, batch totals, and
-exportable report rows. It must not claim that an operation happened merely
-because an invoice says so.
-
-**Adversarial gate:** duplicate invoices, two operations for one obligation,
-partial operation, mismatched currency, recipient typo, conflicting supplier
-identity, pending operation, malformed amount, and missing evidence.
-
-**Standalone value:** the merchant can organize a supplier batch and know what is
-ready, blocked, duplicated, contradictory, or unresolved.
-
-### Level 2 — AI source-to-report operations desk
+### Level 1 — AI supplier operations intelligence
 
 **Complete product state:** A merchant provides authorized email exports,
-attachments, invoices, and contracts. The agent extracts candidate facts,
-preserves evidence, runs the Level 1 engine, and produces a report with human
-review markers.
+attachments, supplier invoices, contracts, and policy. The AI extracts candidate
+facts with provenance. Deterministic automation organizes the supplier batch,
+detects duplicates, conflicts, recipient typos, price anomalies, limits, and
+missing evidence, then produces an exact metrics and exception report.
 
 The complete flow is:
 
 ```text
-authorized business sources
+authorized emails + contracts + invoices + policy
         -> AI extraction with provenance
-        -> deterministic supplier preflight and reconciliation
-        -> report, metrics, conflicts, and review queue
+        -> supplier normalization and deterministic preflight
+        -> duplicate/conflict resolution and review queue
+        -> exact metrics, report, and exportable operations rows
 ```
 
-Documents are data, never instructions. The agent can resolve duplicates and
-conflicts only through explicit deterministic rules; ambiguous cases remain
-visible for review.
+Level 1 may use imported operation records as observations. It does not pretend
+that a provider operation occurred merely because an invoice says so. It is a
+complete merchant intelligence product without live PayPal execution, not a
+technical fragment waiting to be replaced.
+
+**Required capabilities:** supplier organization, invoice identity, evidence
+fields, duplicate detection, typo detection, price-history alerts, limits,
+partial/mismatched operation detection, overdue items, batch totals, reports,
+and human review markers.
 
 **Adversarial gate:** prompt injection inside an invoice, contradictory contract
-term, duplicate attachment, altered source hash, missing excerpt, low-confidence
-field, and extractor output containing unauthorized fields.
+term, duplicate attachment, altered source hash, duplicate invoices, two
+operations for one obligation, partial operation, mismatched currency,
+recipient typo, conflicting supplier identity, pending operation, malformed
+amount, and missing evidence.
 
 **Standalone value:** the merchant can turn a messy supplier inbox into an
-evidence-backed operational report without manually organizing every document.
+evidence-backed operational report and know what is ready, blocked, duplicated,
+contradictory, overdue, or unresolved.
 
-### Level 3 — PayPal Payouts operations desk
+### Level 2 — PayPal Payouts integration
 
-**Complete product state:** The same supplier workflow reads real PayPal Sandbox
-payout operations, preserves provider statuses, reconciles them with obligations,
-and recovers safely from retries and unknown outcomes.
+**Mandatory complete product state:** Level 1 runs against the selected PayPal
+Sandbox payout capability. Durin reads and normalizes real provider operations,
+prepares immutable payout proposals, waits for explicit merchant approval,
+submits only the approved operation, recovers safely from unknown outcomes, and
+updates the supplier report.
 
 The complete flow is:
 
 ```text
-merchant sources + PayPal Payouts activity
-        -> evidence and provider-state normalization
-        -> deterministic supplier reconciliation
-        -> report + explicit exceptions + recovery state
+merchant sources + AI report
+        -> immutable payout proposal
+        -> merchant approval
+        -> PayPal Payout operation
+        -> provider status and recovery
+        -> deterministic reconciliation and updated report
 ```
 
-No credential reaches the agent. PayPal status is preserved as provider data;
-Durin does not invent settlement claims. A payout may be `Pending`, `Success`,
-`Unclaimed`, `Refunded`, `Failed`, `On Hold`, `Blocked`, `Denied`, or `Returned`
-without those states being collapsed into one boolean.
+No credential reaches the agent. PayPal status remains provider data. A payout
+may be `Pending`, `Success`, `Unclaimed`, `Refunded`, `Failed`, `On Hold`,
+`Blocked`, `Denied`, or `Returned`; Durin does not collapse these states into a
+boolean or claim final settlement without the correct evidence.
 
 **Adversarial gate:** timeout after submission, repeated lookup, duplicate
 response, pending payout, returned payout, provider API error, changed recipient,
-and credentials exposed to the agent.
+changed amount after approval, replayed approval, and credentials exposed to the
+agent.
 
-**Standalone value:** the merchant can organize and reconcile real PayPal payout
-activity for many suppliers.
+**Standalone value:** the merchant can organize, approve, execute, recover, and
+reconcile real PayPal payout activity for many suppliers.
 
-### Level 4 — Merchant-authorized payment operations
+### Level 3 — Post-hackathon improvements
 
-**Complete product state:** From the Level 3 report, the merchant can approve an
-immutable payout proposal. Durin submits only the authorized operation through
-the PayPal capability adapter, records the provider result idempotently, and
-updates the report.
-
-The complete flow is:
-
-```text
-supplier obligation + evidence
-        -> immutable proposal
-        -> merchant approval
-        -> PayPal Payout operation
-        -> recovery + reconciliation + report
-```
-
-The agent cannot approve its own proposal. A changed amount, beneficiary,
-currency, operation, policy, or evidence set requires a new approval.
-
-**Adversarial gate:** replayed approval, changed beneficiary, changed amount,
-duplicate execution, provider timeout, partial result, revoked policy, and agent
-self-approval.
-
-**Standalone value:** the merchant can move from organized supplier work to
-controlled PayPal execution without surrendering monetary authority.
-
-### Level 5 — Receivables extension
-
-**Complete product state:** Durin adds customer invoices and PayPal collections as
-a separate end-to-end domain, with its own operation model, reconciliation rules,
-reports, and review states.
+Each post-hackathon improvement must still be a complete end-to-end product
+state, not a technical phase. Possible destinations include additional email
+connectors, recurring reports, richer PayPal operations, supplier portals,
+multi-currency support, and the independent `RECEIVABLE` domain.
 
 `RECEIVABLE` is not implemented by renaming `PAYABLE`; its evidence and balances
-are independent. This level can be built post-hackathon without invalidating the
-supplier product.
-
-**Adversarial gate:** duplicate capture, partial capture, refund after recognition,
-unmatched customer payment, ambiguous match, fee omission, pending capture, and
-unsupported settlement claim.
-
-**Standalone value:** the merchant can analyze both outgoing supplier operations
-and incoming customer collections without confusing their semantics.
+remain independent. It can be added without invalidating the supplier product.
 
 ## Current position
 
-Level 1 is complete as an offline supplier operations desk: the bounded MCP,
-pure automation engine, supplier preflight, metrics, canonical report, source
-hashes, atomic persistence, tracked fixtures, and end-to-end command are present
-and tested. Level 2 is the next coherent product state: authorized source
-ingestion and AI extraction with provenance.
+The repository currently contains the deterministic supplier engine, MCP, source
+hashing, report persistence, fixtures, and agent-boundary documentation. It is
+not Level 1 yet: AI source ingestion, provenance-preserving extraction, and the
+complete source-to-report workflow are still open. Level 2 PayPal integration is
+mandatory after Level 1 and is not optional scope.
 
 ## Open constraints
 
 | Constraint | State | Revisit trigger |
 | --- | --- | --- |
-| PayPal Payouts Sandbox access and capability | Open, unresolved | Validate before Level 3. |
-| Email provider and consent boundary | Open, unresolved | Select the first authorized source for Level 2. |
-| Payout settlement evidence | Open, unresolved | Map PayPal responses before claiming final settlement. |
+| First authorized email/source boundary | Open, unresolved | Required to complete Level 1. |
+| AI extraction provider and structured output contract | Open, unresolved | Required to complete Level 1. |
+| PayPal Payouts Sandbox access and capability | Open, unresolved | Required to start Level 2. |
+| Payout settlement evidence | Open, unresolved | Resolve before claiming final settlement. |
 | Currency conversion policy | Open, unresolved | Required before multi-currency supplier batches. |
 
 These are open constraints, not completed features and not silently discarded
