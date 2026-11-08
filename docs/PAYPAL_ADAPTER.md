@@ -9,7 +9,9 @@ HTTP requests.
 ## Invariants
 
 - `proposalDigest` must match both the proposal and the human authorization.
-- An expired or reused authorization is rejected before payload construction.
+- An expired authorization is rejected before payload construction. A reused
+  authorization is rejected at the provider submission boundary; rebuilding a
+  request is allowed so recovery can reuse the same idempotency key.
 - `sender_batch_id` is derived from the approved digest and must be reused for
   recovery. It is the idempotency identity for the payout batch.
 - PayPal batch and item states are preserved as provider data. `SUCCESS` at the
@@ -43,6 +45,19 @@ The application deployment should set stable secret material in
 `DURIN_SOURCE_ATTESTATION_KEY`. Without those variables, the local fallback
 keys are process-scoped and serialized artifacts cannot be verified after a
 process restart.
+
+For multi-process execution, set `DURIN_AUTHORIZATION_LEDGER_PATH` to a shared
+SQLite file on durable storage. The ledger uses a unique authorization and
+proposal key, WAL, busy timeouts, and `BEGIN IMMEDIATE` transitions:
+
+```text
+APPROVED -> IN_FLIGHT -> SUBMITTED
+```
+
+An uncertain HTTP result remains `IN_FLIGHT`; the recovery path must query the
+same PayPal `sender_batch_id` before any further action. The ledger does not
+claim exactly-once delivery across PayPal: it provides durable local state and
+idempotent request coordination.
 
 `paypal_client.py` contains the application-side Sandbox client. It is
 fail-closed to `api-m.sandbox.paypal.com` or loopback test endpoints, requires

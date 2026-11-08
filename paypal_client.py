@@ -14,6 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from threading import Lock
 from typing import Any, Callable
 
@@ -75,22 +76,33 @@ class PayPalSandboxClient:
         payload_batch_id = payload.get("sender_batch_header", {}).get("sender_batch_id") if isinstance(payload, dict) else None
         if payload_batch_id != sender_batch_id:
             raise ValueError("sender_batch_id must match payload sender_batch_id")
+        authorization_id = payload.get("durin", {}).get("authorizationId") if isinstance(payload.get("durin"), dict) else None
+        from authorization_ledger import AuthorizationLedger
+        ledger = AuthorizationLedger.from_env()
+        if authorization_id and ledger is not None:
+            ledger.reserve_submission(authorization_id, payload, datetime.now(timezone.utc).isoformat())
+            return self._submit_payout(payload, sender_batch_id, authorization_id, ledger)
         with _PAYOUT_SUBMISSION_LOCK:
-            authorization_id = payload.get("durin", {}).get("authorizationId") if isinstance(payload.get("durin"), dict) else None
             if authorization_id:
                 from paypal_payouts import authorization_was_submitted
                 if authorization_was_submitted(authorization_id):
                     raise ValueError("authorization has already been consumed")
-            result = self._json_request(
-                "/v1/payments/payouts",
-                method="POST",
-                body=payload,
-                headers={"PayPal-Request-Id": sender_batch_id},
-            )
-            if authorization_id:
-                from paypal_payouts import mark_authorization_submitted
-                mark_authorization_submitted(authorization_id)
+            result = self._submit_payout(payload, sender_batch_id, authorization_id, None)
             return result
+
+    def _submit_payout(self, payload: dict[str, Any], sender_batch_id: str, authorization_id: str | None, ledger: Any) -> dict[str, Any]:
+        result = self._json_request(
+            "/v1/payments/payouts",
+            method="POST",
+            body=payload,
+            headers={"PayPal-Request-Id": sender_batch_id},
+        )
+        if authorization_id and ledger is not None:
+            ledger.mark_submitted(authorization_id, payload, result, datetime.now(timezone.utc).isoformat())
+        elif authorization_id:
+            from paypal_payouts import mark_authorization_submitted
+            mark_authorization_submitted(authorization_id)
+        return result
 
     def get_payout(self, payout_batch_id: str) -> dict[str, Any]:
         if not payout_batch_id or len(payout_batch_id) > 30:

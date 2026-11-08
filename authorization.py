@@ -98,7 +98,7 @@ def approve_proposal(
     if not isinstance(approver_id, str) or not approver_id.strip():
         raise ValueError("approver_id is required")
     authorization_id = hashlib.sha256(f"{expected_digest}:{approver_id}:{approved_at}".encode()).hexdigest()[:24]
-    return {
+    authorization = {
         "authorizationId": authorization_id,
         "proposalId": proposal["proposalId"],
         "proposalDigest": expected_digest,
@@ -113,6 +113,11 @@ def approve_proposal(
             approver_id=approver_id, approved_at=approved_at, expires_at=proposal["expiresAt"],
         ),
     }
+    from authorization_ledger import AuthorizationLedger
+    ledger = AuthorizationLedger.from_env()
+    if ledger is not None:
+        ledger.record_approval(authorization)
+    return authorization
 
 
 def _valid_interval(start: str, end: str) -> None:
