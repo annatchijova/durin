@@ -19,6 +19,7 @@ from automation import prepare_proposal
 from source_ingestion import list_sources as ingest_sources, validate_invoice_extraction
 from supplier_operations import analyze_supplier_batch
 from operations_narrative import build_operations_report
+from authorization import create_immutable_proposal
 
 
 mcp = FastMCP("durin-merchant-automation")
@@ -200,6 +201,36 @@ def create_payment_proposal(invoices: list[dict[str, Any]]) -> dict[str, Any]:
         return {"ok": True, "merchant": policy["merchantName"], **proposal}
     except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         return _error("proposal_failed", str(exc))
+
+
+@mcp.tool()
+def seal_payment_proposal(
+    invoices: list[dict[str, Any]],
+    policy_version: str,
+    evidence_refs: list[str],
+    proposal_id: str,
+    created_at: str,
+    expires_at: str,
+) -> dict[str, Any]:
+    """Create a digest-bound proposal; this tool never approves or submits it."""
+    try:
+        policy = _load_policy()
+        proposal = prepare_proposal(invoices, policy)
+        if not proposal["accepted"]:
+            return _error("proposal_failed", "no invoice is eligible for a proposal")
+        sealed = create_immutable_proposal(
+            accepted=proposal["accepted"],
+            currency=proposal["currency"],
+            total_amount=proposal["totalAmount"],
+            policy_version=policy_version,
+            evidence_refs=evidence_refs,
+            proposal_id=proposal_id,
+            created_at=created_at,
+            expires_at=expires_at,
+        )
+        return {"ok": True, **sealed}
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        return _error("proposal_sealing_failed", str(exc))
 
 
 @mcp.tool()

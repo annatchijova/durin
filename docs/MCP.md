@@ -18,6 +18,7 @@ payment.
 | `analyze_supplier_operations` | Pure computation | Runs supplier preflight, conflict checks, and exact batch metrics. |
 | `generate_operations_report` | Pure computation | Returns fixed metrics plus a separate business-language explanation layer. |
 | `create_payment_proposal` | Pure computation | Applies policy and returns ready or excluded invoices. |
+| `seal_payment_proposal` | Pure computation | Binds an eligible proposal to a digest, policy version, evidence, and expiry; never approves or submits. |
 
 The proposal result always includes `NO_PAYMENT_SUBMITTED` and
 `humanApprovalRequired: true`. PayPal integration is intentionally a later
