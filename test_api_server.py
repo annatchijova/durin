@@ -107,5 +107,87 @@ class APIServerTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
 
 
+class FakeChatClient:
+    def __init__(self, extraction_client=None):
+        pass
+
+    def interpret_query(self, question):
+        return {"monthsBack": 1, "counterpartyHint": "acme", "amountHint": None, "keywords": []}
+
+    def narrate_results(self, *, question, transactions):
+        if not transactions:
+            return "No matching payment was found in the searched period."
+        txn = transactions[0]
+        return f"Found {txn['transactionId']} for {txn['amountValue']} {txn['currency']} on {txn['date']}."
+
+
+class FakePayPalSearchClient:
+    def __init__(self, config=None):
+        pass
+
+    def search_transactions(self, *, start_date, end_date, page=1, page_size=100):
+        if page > 1:
+            return {"transaction_details": [], "total_pages": 1}
+        return {
+            "transaction_details": [
+                {
+                    "transaction_info": {
+                        "transaction_id": "TXN-ACME-1",
+                        "transaction_initiation_date": "2026-05-01T00:00:00Z",
+                        "transaction_amount": {"value": "450.00", "currency_code": "USD"},
+                        "transaction_status": "S",
+                    },
+                    "payer_info": {"email_address": "acme@paypal.com", "payer_name": {"alternate_full_name": "Acme Corp"}},
+                }
+            ],
+            "total_pages": 1,
+        }
+
+
+class ChatEndpointTests(unittest.TestCase):
+    def setUp(self):
+        self.env = patch.dict("os.environ", {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_BASE_URL": "https://api.openai.com",
+            "PAYPAL_CLIENT_ID": "id",
+            "PAYPAL_CLIENT_SECRET": "secret",
+            "PAYPAL_BASE_URL": "https://api-m.sandbox.paypal.com",
+        }, clear=False)
+        self.env.start()
+        self.chat_patch = patch("api_server.OpenAIChatClient", FakeChatClient)
+        self.chat_patch.start()
+        self.paypal_patch = patch("api_server.PayPalSandboxClient", FakePayPalSearchClient)
+        self.paypal_patch.start()
+        import api_server
+        self.client = TestClient(api_server.app)
+
+    def tearDown(self):
+        self.paypal_patch.stop()
+        self.chat_patch.stop()
+        self.env.stop()
+
+    def test_chat_finds_and_narrates_a_real_matching_transaction(self):
+        response = self.client.post("/api/chat", json={"question": "Did we pay Acme 450 recently?"})
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertTrue(body["ok"])
+        self.assertEqual(len(body["transactions"]), 1)
+        self.assertEqual(body["transactions"][0]["transactionId"], "TXN-ACME-1")
+        self.assertIn("TXN-ACME-1", body["answer"])
+
+    def test_chat_with_no_match_still_returns_an_honest_answer(self):
+        with patch("api_server.OpenAIChatClient", FakeChatClient):
+            class NoMatchChat(FakeChatClient):
+                def interpret_query(self, question):
+                    return {"monthsBack": 1, "counterpartyHint": "nonexistent-corp", "amountHint": None, "keywords": []}
+
+            with patch("api_server.OpenAIChatClient", NoMatchChat):
+                response = self.client.post("/api/chat", json={"question": "Did we pay Nonexistent Corp?"})
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertEqual(body["transactions"], [])
+        self.assertIn("No matching", body["answer"])
+
+
 if __name__ == "__main__":
     unittest.main()

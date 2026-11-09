@@ -4,7 +4,7 @@
 // the browser only ever talks to this Next.js server, never to the Python
 // API's host/port directly.
 
-import type { Case, CaseSummary } from "./types";
+import type { Case, CaseSummary, ChatResponse } from "./types";
 
 const API_BASE = process.env.DURIN_API_URL ?? "http://127.0.0.1:8010";
 
@@ -23,8 +23,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     cache: "no-store",
   });
   if (!response.ok) {
-    const body = await response.text();
-    throw new ApiError(response.status, body || response.statusText);
+    const raw = await response.text();
+    // FastAPI's HTTPException body is {"detail": "..."}; surface that
+    // message cleanly instead of the raw JSON text.
+    let message = raw || response.statusText;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.detail === "string") message = parsed.detail;
+    } catch {
+      // not JSON -- use the raw text as-is
+    }
+    throw new ApiError(response.status, message);
   }
   return response.json() as Promise<T>;
 }
@@ -58,6 +67,10 @@ export function submitToPaypal(reportId: string): Promise<Case> {
 
 export function refreshPayout(reportId: string): Promise<Case> {
   return request(`/api/cases/${encodeURIComponent(reportId)}/refresh-payout`, { method: "POST" });
+}
+
+export function askChat(question: string): Promise<ChatResponse> {
+  return request("/api/chat", { method: "POST", body: JSON.stringify({ question }) });
 }
 
 export { ApiError };

@@ -43,13 +43,18 @@ _load_dotenv(Path(__file__).resolve().parent / ".env")
 from automation import prepare_proposal
 from authorization import approve_proposal, create_immutable_proposal, proposal_digest
 from draft_ledger import DraftLedger
+from openai_chat_client import OpenAIChatClient
 from openai_extractor import OpenAIExtractionClient, OpenAIExtractionConfig, OpenAIProviderError
 from paypal_client import PayPalProviderError, PayPalSandboxClient, PayPalSandboxConfig
 from paypal_operation_adapter import operations_from_payout_response
 from paypal_payouts import build_payout_request, normalize_payout_response
+from paypal_transaction_search import chunk_date_range, filter_transactions, normalize_transaction
 from source_ingestion import SUPPORTED_EXTRACTION_KINDS, list_sources
 from source_workflow import build_report_from_extractions
 from supplier_operations import analyze_supplier_batch
+
+
+MAX_PAGES_PER_CHUNK = 5
 
 
 EXTRACTOR_VERSION = "openai-extractor-v1"
@@ -110,6 +115,10 @@ class RunPipelineRequest(BaseModel):
 
 class ApproveRequest(BaseModel):
     approverId: str
+
+
+class ChatRequest(BaseModel):
+    question: str
 
 
 @app.get("/api/health")
@@ -296,6 +305,73 @@ def _refresh_payout(case: dict[str, Any]) -> dict[str, Any]:
         case["stage"] = "RECONCILED"
     _save_case(case)
     return case
+
+
+@app.post("/api/chat")
+def chat(request: ChatRequest) -> dict[str, Any]:
+    """Answer "did we pay X" / "what happened with that invoice from months
+    ago" against PayPal's real transaction history.
+
+    The model only proposes search hints and narrates already-matched real
+    results; it never produces a transaction on its own. See
+    openai_chat_client.py and paypal_transaction_search.py for the boundary.
+    """
+    try:
+        extraction_client = OpenAIExtractionClient(OpenAIExtractionConfig.from_env())
+    except ValueError as exc:
+        raise HTTPException(500, f"OpenAI is not configured: {exc}") from exc
+    chat_client = OpenAIChatClient(extraction_client)
+
+    try:
+        hints = chat_client.interpret_query(request.question)
+    except (OpenAIProviderError, ValueError) as exc:
+        raise HTTPException(502, f"could not interpret the question: {exc}") from exc
+
+    try:
+        paypal_config = PayPalSandboxConfig.from_env()
+    except ValueError as exc:
+        raise HTTPException(500, f"PayPal is not configured: {exc}") from exc
+    paypal_client = PayPalSandboxClient(paypal_config)
+
+    months_back = hints.get("monthsBack") or 6
+    chunks = chunk_date_range(months_back=months_back)
+    transactions: list[dict[str, Any]] = []
+    for start, end in chunks:
+        page = 1
+        while page <= MAX_PAGES_PER_CHUNK:
+            try:
+                result = paypal_client.search_transactions(start_date=start, end_date=end, page=page, page_size=100)
+            except PayPalProviderError as exc:
+                raise HTTPException(502, f"PayPal transaction search failed: {exc}") from exc
+            details = result.get("transaction_details", [])
+            if not isinstance(details, list):
+                break
+            transactions.extend(normalize_transaction(raw) for raw in details if isinstance(raw, dict))
+            total_pages = result.get("total_pages", 1)
+            if not isinstance(total_pages, int) or page >= total_pages:
+                break
+            page += 1
+
+    matched = filter_transactions(
+        transactions,
+        counterparty_hint=hints.get("counterpartyHint") or None,
+        amount_hint=hints.get("amountHint") or None,
+        keywords=hints.get("keywords") or None,
+    )
+    try:
+        answer = chat_client.narrate_results(question=request.question, transactions=matched)
+    except OpenAIProviderError as exc:
+        raise HTTPException(502, f"could not narrate results: {exc}") from exc
+
+    return {
+        "ok": True,
+        "question": request.question,
+        "hints": hints,
+        "answer": answer,
+        "transactions": matched,
+        "searchedMonthsBack": months_back,
+        "totalTransactionsScanned": len(transactions),
+    }
 
 
 if __name__ == "__main__":

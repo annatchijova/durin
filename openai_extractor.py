@@ -120,12 +120,18 @@ class OpenAIExtractionClient:
             "temperature": 0,
             "max_tokens": 2000,
         }
-        response = self._request(
+        response = self.chat_completion(payload)
+        return self._parse_candidate(response)
+
+    def chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Public entry point for other fail-closed OpenAI clients (e.g. the
+        transaction-search chat assistant) that share this config/transport
+        but need a different prompt or response shape."""
+        return self._request(
             "/v1/chat/completions",
             body=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
             headers={"Authorization": f"Bearer {self.config.api_key}", "Content-Type": "application/json"},
         )
-        return self._parse_candidate(response)
 
     def _parse_candidate(self, response: dict[str, Any]) -> dict[str, Any]:
         choices = response.get("choices")

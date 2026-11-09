@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
+import { ChatWidget } from "@/components/ChatWidget";
 import { I18nProvider } from "@/lib/i18n";
 import "./globals.css";
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <I18nProvider>
           <Navbar />
           <main className="mx-auto max-w-5xl px-5 py-8">{children}</main>
+          <ChatWidget />
         </I18nProvider>
       </body>
     </html>

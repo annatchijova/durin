@@ -157,6 +157,31 @@ export type Case = {
   reconciledRows?: Row[];
 };
 
+export type ChatTransaction = {
+  transactionId: string;
+  date: string;
+  updatedDate: string;
+  amountValue: string;
+  currency: string;
+  status: string;
+  eventCode: string;
+  subject: string;
+  note: string;
+  invoiceId: string;
+  counterpartyEmail: string;
+  counterpartyName: string;
+};
+
+export type ChatResponse = {
+  ok: boolean;
+  question: string;
+  hints: { monthsBack: number; counterpartyHint: string | null; amountHint: string | null; keywords: string[] };
+  answer: string;
+  transactions: ChatTransaction[];
+  searchedMonthsBack: number;
+  totalTransactionsScanned: number;
+};
+
 export type CaseSummary = {
   reportId: string;
   createdAt: string;

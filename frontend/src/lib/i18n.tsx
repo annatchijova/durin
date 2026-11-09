@@ -101,6 +101,19 @@ const dict = {
     "state.pending": "Pending",
 
     "action.genericError": "Something failed",
+
+    "chat.title": "Ask about a payment",
+    "chat.subtitle": "Search real PayPal transaction history in natural language.",
+    "chat.placeholder": "e.g. \"Did we pay Acme around $450 a few months ago?\"",
+    "chat.send": "Ask",
+    "chat.sending": "Searching…",
+    "chat.empty": "Ask about a client or supplier payment — I'll search your real PayPal history, not guess.",
+    "chat.scanned": "scanned",
+    "chat.transactions": "transaction(s)",
+    "chat.over": "over",
+    "chat.months": "month(s)",
+    "chat.open": "Open chat",
+    "chat.close": "Close chat",
   },
   es: {
     "nav.tagline": "lo que la IA leyó, lo que el motor verificó, lo que vos autorizaste",
@@ -198,6 +211,19 @@ const dict = {
     "state.pending": "Pendiente",
 
     "action.genericError": "Algo falló",
+
+    "chat.title": "Preguntá por un pago",
+    "chat.subtitle": "Buscá en el historial real de PayPal en lenguaje natural.",
+    "chat.placeholder": "ej. \"¿Le pagamos a Acme unos 450 hace unos meses?\"",
+    "chat.send": "Preguntar",
+    "chat.sending": "Buscando…",
+    "chat.empty": "Preguntá por un pago a un cliente o proveedor — busco en tu historial real de PayPal, no adivino.",
+    "chat.scanned": "revisadas",
+    "chat.transactions": "transacción(es)",
+    "chat.over": "en",
+    "chat.months": "mes(es)",
+    "chat.open": "Abrir chat",
+    "chat.close": "Cerrar chat",
   },
 } as const;
 

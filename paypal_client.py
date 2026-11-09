@@ -104,6 +104,25 @@ class PayPalSandboxClient:
             raise ValueError("payout_batch_id is required and bounded")
         return self._json_request(f"/v1/payments/payouts/{urllib.parse.quote(payout_batch_id, safe='')}", method="GET")
 
+    def search_transactions(self, *, start_date: str, end_date: str, page: int = 1, page_size: int = 100) -> dict[str, Any]:
+        """Read-only transaction history search. Never mutates anything.
+
+        PayPal bounds a single call to roughly a 31-day window; chunking a
+        longer range into multiple calls is the caller's job (see
+        paypal_transaction_search.chunk_date_range).
+        """
+        if not start_date or not end_date:
+            raise ValueError("start_date and end_date are required")
+        if isinstance(page, bool) or not isinstance(page, int) or page < 1:
+            raise ValueError("page must be a positive integer")
+        if isinstance(page_size, bool) or not isinstance(page_size, int) or not (1 <= page_size <= 500):
+            raise ValueError("page_size must be between 1 and 500")
+        query = urllib.parse.urlencode({
+            "start_date": start_date, "end_date": end_date,
+            "fields": "all", "page_size": page_size, "page": page,
+        })
+        return self._json_request(f"/v1/reporting/transactions?{query}", method="GET")
+
     def finalize_payout_recovery(self, payload: dict[str, Any], provider_response: dict[str, Any], provider_batch_id: str) -> None:
         """Finalize an IN_FLIGHT ledger row after a provider batch lookup."""
         authorization_id = payload.get("durin", {}).get("authorizationId") if isinstance(payload.get("durin"), dict) else None
