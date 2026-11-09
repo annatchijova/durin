@@ -81,6 +81,7 @@ def build_report_from_extractions(
         "requiresReviewCount": sum(item.get("requiresReview") == "true" for item in manifest),
     }
     report["contradictions"] = contradictions
+    report["extractedInvoices"] = invoices
     return report
 
 

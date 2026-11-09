@@ -55,6 +55,9 @@ class SourceWorkflowTests(unittest.TestCase):
         self.assertEqual(report["extraction"]["extractedCount"], 1)
         self.assertEqual(report["rows"][0]["invoiceId"], f"source-{self.source['sourceId']}")
         self.assertEqual(report["rows"][0]["status"], "READY_FOR_REVIEW")
+        self.assertEqual(len(report["extractedInvoices"]), 1)
+        self.assertIn("provenance", report["extractedInvoices"][0])
+        self.assertIn("amount", report["extractedInvoices"][0]["provenance"])
 
     def test_missing_candidate_is_explicit_and_not_an_invoice(self):
         report = build_report_from_extractions(
