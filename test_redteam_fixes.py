@@ -1,6 +1,8 @@
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from authorization import approve_proposal, create_immutable_proposal, proposal_digest
 from automation import prepare_proposal
@@ -113,6 +115,53 @@ class RedTeamFixTests(unittest.TestCase):
         mark_authorization_submitted(approved["authorizationId"])
         with self.assertRaisesRegex(ValueError, "consumed"):
             mark_authorization_submitted(approved["authorizationId"])
+
+    def test_double_approval_without_a_ledger_cannot_later_produce_two_submissions(self):
+        # Red-team round 2026-11-09: approving the same proposal digest twice
+        # while no ledger is configured produces two distinct authorizationIds
+        # (record_approval is skipped silently when ledger is None). Confirm
+        # that neither can actually be submitted once a ledger exists, so the
+        # misconfiguration fails closed rather than enabling a double payout.
+        with patch.dict("os.environ", {}, clear=False):
+            import os
+            os.environ.pop("DURIN_AUTHORIZATION_LEDGER_PATH", None)
+            now = datetime.now(timezone.utc)
+            created_at = now.isoformat()
+            expires_at = (now + timedelta(hours=1)).isoformat()
+            created = create_immutable_proposal(
+                accepted=[invoice()], currency="USD", total_amount="100.00", policy_version="race-v1",
+                evidence_refs=["race-test"], proposal_id="race-proposal", created_at=created_at, expires_at=expires_at,
+            )
+            proposal, digest = created["proposal"], created["proposalDigest"]
+            auth1 = approve_proposal(proposal=proposal, expected_digest=digest, approver_id="merchant", approved_at=created_at)
+            auth2 = approve_proposal(proposal=proposal, expected_digest=digest, approver_id="merchant", approved_at=(now + timedelta(minutes=1)).isoformat())
+            self.assertNotEqual(auth1["authorizationId"], auth2["authorizationId"])
+
+            with tempfile.TemporaryDirectory() as directory:
+                os.environ["DURIN_AUTHORIZATION_LEDGER_PATH"] = str(Path(directory) / "ledger.sqlite3")
+                payload1 = build_payout_request(proposal=proposal, proposal_digest_value=digest, authorization=auth1, observed_at=(now + timedelta(minutes=2)).isoformat())
+                payload2 = build_payout_request(proposal=proposal, proposal_digest_value=digest, authorization=auth2, observed_at=(now + timedelta(minutes=3)).isoformat())
+
+                def opener(request, timeout):
+                    class R:
+                        status = 200
+                        def __enter__(self): return self
+                        def __exit__(self, *a): return False
+                        def read(self, limit=-1):
+                            import json
+                            return json.dumps({"access_token": "tok"} if "token" in request.full_url else {"batch_header": {"payout_batch_id": "B-RACE"}}).encode()
+                    return R()
+
+                client = PayPalSandboxClient(PayPalSandboxConfig("id", "secret", "http://127.0.0.1"), opener=opener)
+                submitted = 0
+                for payload in (payload1, payload2):
+                    sender_batch_id = payload["sender_batch_header"]["sender_batch_id"]
+                    try:
+                        client.create_payout(payload, sender_batch_id)
+                        submitted += 1
+                    except ValueError:
+                        pass
+                self.assertEqual(submitted, 0)
 
     def test_provider_evidence_requires_local_attestation_and_proposal_amounts_are_positive(self):
         forged = {"provider": "paypal", "providerItemId": "I", "transactionId": "T", "providerStatus": "SUCCESS", "providerAmountValue": "100.00", "providerCurrency": "USD", "parsedAmount": "100.00", "parseError": None, "evidenceStatus": "INTERPRETED"}

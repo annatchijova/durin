@@ -56,6 +56,15 @@ and reads at most `MAX_SOURCES` (100) of the most recent messages per call.
 It never deletes, flags, or moves a message, and the IMAP password never
 leaves the server process — the tool returns sources, never the credential.
 
+**Red-team note on the authorization boundary.** With `list_sources`, a
+human deliberately places a file in `DURIN_SOURCE_DIR` — that act is the
+authorization. With `list_imap_sources`, anything that lands in the
+configured mailbox becomes an ingestible source automatically, with no
+equivalent deliberate human act. Point `DURIN_IMAP_HOST` at a dedicated,
+access-controlled mailbox used only for this purpose — never a general
+business inbox — or the mailbox's own spam/access controls become Durin's
+de facto source-authorization boundary.
+
 Invoice observations are untrusted input. A missing fixture is reported as
 unavailable rather than treated as an empty, successful review.
 
