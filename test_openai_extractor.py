@@ -58,6 +58,8 @@ class OpenAIExtractionClientTests(unittest.TestCase):
         self.assertEqual(headers["authorization"], "Bearer sk-test")
         body = json.loads(captured["request"].data)
         self.assertEqual(body["response_format"]["json_schema"]["schema"]["required"].count("evidence"), 1)
+        self.assertEqual(body["response_format"]["json_schema"]["schema"]["properties"]["amount"]["maxLength"], 256)
+        self.assertIn("max_tokens", body)
 
     def test_rejects_empty_source_content(self):
         client = OpenAIExtractionClient(OpenAIExtractionConfig("sk-test"), opener=lambda request, timeout: FakeResponse(200, {}))

@@ -27,15 +27,18 @@ MAX_RESPONSE_BYTES = 2_000_000
 DEFAULT_BASE_URL = "https://api.openai.com"
 DEFAULT_MODEL = "gpt-4o-mini"
 
+_MAX_FIELD_LENGTH = 256
+_MAX_EVIDENCE_LENGTH = 1000
+
 _EXTRACTION_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
-        **{field: {"type": "string"} for field in ALLOWED_INVOICE_FIELDS},
+        **{field: {"type": "string", "maxLength": _MAX_FIELD_LENGTH} for field in ALLOWED_INVOICE_FIELDS},
         "evidence": {
             "type": "object",
             "additionalProperties": False,
-            "properties": {field: {"type": "string"} for field in ALLOWED_INVOICE_FIELDS},
+            "properties": {field: {"type": "string", "maxLength": _MAX_EVIDENCE_LENGTH} for field in ALLOWED_INVOICE_FIELDS},
             "required": sorted(ALLOWED_INVOICE_FIELDS),
         },
     },
@@ -115,6 +118,7 @@ class OpenAIExtractionClient:
                 "json_schema": {"name": "invoice_extraction", "strict": True, "schema": _EXTRACTION_SCHEMA},
             },
             "temperature": 0,
+            "max_tokens": 2000,
         }
         response = self._request(
             "/v1/chat/completions",

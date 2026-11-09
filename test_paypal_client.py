@@ -44,6 +44,24 @@ class PayPalClientTests(unittest.TestCase):
         expected_basic = "Basic " + base64.b64encode(b"id:secret").decode()
         self.assertEqual(first_headers["authorization"], expected_basic)
 
+    def test_authorized_payout_without_ledger_is_rejected_before_any_request(self):
+        # Red-team finding: this guard is the only thing standing between an
+        # authorized payout and submission with no durable idempotency
+        # tracking. It must fire before any HTTP call, not just eventually.
+        import os
+        os.environ.pop("DURIN_AUTHORIZATION_LEDGER_PATH", None)
+        requests = []
+
+        def opener(request, timeout):
+            requests.append(request)
+            return FakeResponse(200, {"access_token": "sandbox-token"})
+
+        client = PayPalSandboxClient(PayPalSandboxConfig("id", "secret", "http://127.0.0.1"), opener=opener)
+        payload = {"sender_batch_header": {"sender_batch_id": "sbid-1"}, "durin": {"authorizationId": "auth-1"}}
+        with self.assertRaisesRegex(ValueError, "durable authorization ledger is required"):
+            client.create_payout(payload, "sbid-1")
+        self.assertEqual(requests, [])
+
     def test_provider_error_preserves_status_and_body(self):
         def opener(request, timeout):
             return FakeResponse(200, {"access_token": "sandbox-token"}) if request.full_url.endswith("token") else FakeResponse(503, {"name": "TEMPORARY_FAILURE"})

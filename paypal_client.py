@@ -97,9 +97,6 @@ class PayPalSandboxClient:
         )
         if authorization_id and ledger is not None:
             ledger.mark_submitted(authorization_id, payload, result, datetime.now(timezone.utc).isoformat())
-        elif authorization_id:
-            from paypal_payouts import mark_authorization_submitted
-            mark_authorization_submitted(authorization_id)
         return result
 
     def get_payout(self, payout_batch_id: str) -> dict[str, Any]:
