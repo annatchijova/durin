@@ -77,6 +77,19 @@ the approval digest and persist the request identity before invoking it.
 Run `python3 scripts/paypal_preflight.py` after loading `.env` to validate the
 required Sandbox configuration without network access or transaction submission.
 
+## Confirmed against the real PayPal Sandbox
+
+OAuth token exchange, `create_payout`, and `get_payout` have been exercised
+against the live `api-m.sandbox.paypal.com` endpoint (not only synthetic
+responses). That run surfaced two real response-shape facts not visible from
+documentation alone, now reflected in the code:
+
+- A response item's `sender_item_id` is nested under `payout_item`, never a
+  top-level field. `paypal_operation_adapter.py` reads it from there.
+- A `PENDING` item carries no `transaction_id` until PayPal assigns one later;
+  `transaction_id` is now optional everywhere except when `transaction_status`
+  is `SUCCESS`, where it is still required and bound as a unique identity.
+
 The request and recovery rules follow PayPal's official Payouts API reference:
 
 - [Create payout request](https://developer.paypal.com/api/payments.payouts-batch/v1/definitions/create_payout_request/)

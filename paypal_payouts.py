@@ -133,7 +133,11 @@ def normalize_payout_response(response: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("PayPal response item must be an object")
         status = _text(raw.get("transaction_status"), "transaction_status").upper()
         payout_item_id = _text(raw.get("payout_item_id"), "payout_item_id")
-        transaction_id = _text(raw.get("transaction_id"), "transaction_id")
+        # PayPal does not assign a transaction_id until an item leaves PENDING;
+        # requiring it unconditionally would crash on the most common live state.
+        transaction_id = _text(raw["transaction_id"], "transaction_id") if raw.get("transaction_id") else ""
+        if status == "SUCCESS" and not transaction_id:
+            raise ValueError("a SUCCESS item requires a provider transaction_id")
         items.append(
             {
                 "payoutItemId": payout_item_id,

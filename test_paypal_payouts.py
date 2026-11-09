@@ -44,6 +44,23 @@ class PayPalPayoutsTests(unittest.TestCase):
         self.assertEqual(result["reconciliationStatus"], "REVIEW_ITEM_STATES")
         self.assertEqual(result["items"][0]["providerStatus"], "UNCLAIMED")
 
+    def test_pending_item_without_transaction_id_does_not_crash(self):
+        # Observed against the real PayPal Sandbox: a PENDING item has no
+        # transaction_id until PayPal assigns one later.
+        result = normalize_payout_response({
+            "batch_header": {"payout_batch_id": "B-2", "batch_status": "PROCESSING"},
+            "items": [{"payout_item_id": "I-2", "transaction_status": "PENDING"}],
+        })
+        self.assertEqual(result["reconciliationStatus"], "PENDING_PROVIDER")
+        self.assertEqual(result["items"][0]["transactionId"], "")
+
+    def test_success_item_without_transaction_id_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "transaction_id"):
+            normalize_payout_response({
+                "batch_header": {"payout_batch_id": "B-3", "batch_status": "SUCCESS"},
+                "items": [{"payout_item_id": "I-3", "transaction_status": "SUCCESS"}],
+            })
+
     def test_recovery_requires_lookup_after_unknown_outcome(self):
         self.assertEqual(retry_policy(http_status=None, response_received=False), "LOOKUP_BY_SENDER_BATCH_ID_BEFORE_RETRY")
         self.assertEqual(retry_policy(http_status=503, response_received=False), "RETRY_SAME_SENDER_BATCH_ID")
