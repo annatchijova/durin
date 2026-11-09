@@ -230,6 +230,15 @@ session, so it does not yet carry real authority. Still open: a non-demo
 auth boundary for the approval action, and a real-time view of a payout
 still `PENDING` (the UI currently requires a manual "refresh" click).
 
+A transaction-history chat exists end to end (see
+`docs/TRANSACTION_CHAT.md`): a merchant asks a free-text question, the model
+proposes search hints only, a deterministic search runs against PayPal's
+real Transaction Search API, and the model narrates only the real matches
+returned. Live-tested through the browser with real OpenAI calls; the
+Sandbox app's "Transaction Search" feature was off by default and has been
+enabled, but the scope had not finished propagating as of the last check
+(repeated `403 NOT_AUTHORIZED`). No code changes needed once it does.
+
 ## Open constraints
 
 | Constraint | State | Revisit trigger |

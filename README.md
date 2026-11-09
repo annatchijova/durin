@@ -128,6 +128,12 @@ contradictions, proposal, human approval, PayPal result -- against
 `api_server.py` (FastAPI), the only process that holds PayPal/OpenAI
 credentials. See `frontend/README.md` to run it.
 
+It also answers "did we pay \[supplier\] around \[amount\] a few months
+ago?" against the merchant's real PayPal transaction history instead of a
+manual search through hundreds of transactions -- see
+[docs/TRANSACTION_CHAT.md](docs/TRANSACTION_CHAT.md) for how the model stays
+out of the decision path doing it.
+
 See [construction levels](docs/CONSTRUCTION_LEVELS.md) for the destination,
 cross-level contracts, adversarial gates, and open constraints.
 
