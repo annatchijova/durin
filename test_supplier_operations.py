@@ -73,6 +73,16 @@ class SupplierOperationsTests(unittest.TestCase):
         self.assertEqual(row["operationState"], "PENDING")
         self.assertIn("PENDING_OPERATION", row["reasons"])
 
+    def test_unclaimed_operation_is_an_explicit_exception_not_unknown(self):
+        # Observed against the real PayPal Sandbox: an UNCLAIMED payout item
+        # must not fall through to the generic UNKNOWN_OPERATION_STATE reason.
+        operations = [{"operationId": "P-1", "invoiceId": "INV-1", "amount": "100.00", "currency": "USD", "status": "UNCLAIMED"}]
+        result = analyze_supplier_batch([invoice()], operations, policy=POLICY)
+        row = result["rows"][0]
+        self.assertEqual(row["operationState"], "UNCLAIMED")
+        self.assertIn("FAILED_OPERATION", row["reasons"])
+        self.assertNotIn("UNKNOWN_OPERATION_STATE", row["reasons"])
+
     def test_metrics_never_claim_execution(self):
         result = analyze_supplier_batch([invoice()], [], policy=POLICY)
         self.assertEqual(result["execution"], "NO_PAYMENT_SUBMITTED")
