@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCase, ApiError } from "@/lib/api";
 import { CaseJourneyView } from "@/components/CaseJourneyView";
+import { BackendOfflineNotice } from "@/components/BackendOfflineNotice";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,6 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
     return <CaseJourneyView caseData={caseData} />;
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
-    throw error;
+    return <BackendOfflineNotice />;
   }
 }

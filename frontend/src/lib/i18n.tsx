@@ -129,6 +129,9 @@ const dict = {
 
     "action.genericError": "Something failed",
 
+    "offline.title": "Backend not reachable",
+    "offline.desc": "This preview isn't connected to a live Durin backend yet, so there's no case data to show here. The landing page works on its own; cases and the chat need api_server.py running and reachable.",
+
     "chat.title": "Ask about a payment",
     "chat.subtitle": "Search real PayPal transaction history in natural language.",
     "chat.placeholder": "e.g. \"Did we pay Acme around $450 a few months ago?\"",
@@ -265,6 +268,9 @@ const dict = {
     "state.pending": "Pendiente",
 
     "action.genericError": "Algo falló",
+
+    "offline.title": "No se puede conectar al backend",
+    "offline.desc": "Este preview todavía no está conectado a un backend de Durin en vivo, así que no hay datos de casos para mostrar acá. La landing funciona sola; los casos y el chat necesitan api_server.py corriendo y accesible.",
 
     "chat.title": "Preguntá por un pago",
     "chat.subtitle": "Buscá en el historial real de PayPal en lenguaje natural.",
