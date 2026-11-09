@@ -194,12 +194,31 @@ remain independent. It can be added without invalidating the supplier product.
 
 ## Current position
 
-The repository currently contains the deterministic supplier engine, MCP, source
-hashing, provenance-preserving extraction validation, a source-to-report
-orchestrator, report persistence, fixtures, and agent-boundary documentation. It
-is not Level 1 yet: the authorized source connector and a production AI
-extraction provider are still open. Level 2 PayPal integration is mandatory
-after Level 1 and is not optional scope.
+The repository contains the deterministic supplier engine, MCP, source hashing,
+provenance-preserving extraction validation, a source-to-report orchestrator,
+report persistence, fixtures, agent-boundary documentation, a real OpenAI
+extraction pipeline with a draft/review ledger and cross-source contradiction
+detection, a read-only IMAP source connector (implemented, not yet run against a
+real mailbox), and a PayPal Payouts adapter confirmed live against the real
+Sandbox (OAuth, create/get payout, idempotency, IN_FLIGHT recovery, and an
+UNCLAIMED exception) — see `docs/AI_EXTRACTION.md` and `docs/PAYPAL_ADAPTER.md`
+for the evidence. The end-to-end agent-usable MCP flow (sources -> extraction ->
+report -> proposal -> sealed proposal) is pinned by
+`test_mcp_flow_integration.py`. Two red-team rounds ran against tonight's
+additions (`docs/RED_TEAM_AUDIT_2026-11-09.md`); no exploitable finding survived
+induction, three hygiene fixes landed, and one architectural note (the IMAP
+connector's authorization boundary is the mailbox itself) is documented rather
+than code-fixed.
+
+It is not Level 1 yet: the authorized source connector has code but no live
+mailbox test, and the OpenAI extraction provider, while real and live-tested,
+has not been run against a merchant's actual authorized source batch. Level 2
+PayPal integration is mandatory after Level 1 and is not optional scope; its
+Sandbox execution path is now live-confirmed, but the MCP-driven approval flow
+that would drive it from an agent session end to end is still assembled from
+pieces tested individually, not run as one continuous live session. No
+frontend exists yet; per the current plan it is deliberately deferred until
+the AI/MCP path can run the flow end to end on its own.
 
 ## Open constraints
 
