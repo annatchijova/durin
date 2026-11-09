@@ -89,6 +89,19 @@ documentation alone, now reflected in the code:
 - A `PENDING` item carries no `transaction_id` until PayPal assigns one later;
   `transaction_id` is now optional everywhere except when `transaction_status`
   is `SUCCESS`, where it is still required and bound as a unique identity.
+- A duplicate `sender_batch_id` is rejected by PayPal itself
+  (`USER_BUSINESS_ERROR`, "Batch with given sender_batch_id already exists"),
+  not silently replayed. The recovery path (`finalize_payout_recovery`) was
+  exercised end to end against a real sandbox batch: ledger `IN_FLIGHT` ->
+  independent `get_payout` lookup -> `finalize_payout_recovery` -> ledger
+  rejects any further submission of that authorization.
+- `transaction_status: UNCLAIMED` (payout to an unregistered email) was
+  confirmed real: PayPal preserves the item's `errors.name` (e.g.
+  `RECEIVER_UNREGISTERED`) and the batch does not report `SUCCESS`.
+  `supplier_operations.py`'s state sets were missing `UNCLAIMED` and
+  `BLOCKED`, both named in `docs/CONSTRUCTION_LEVELS.md`'s Level 2 state
+  list; they are now classified as exceptions instead of falling through to
+  `UNKNOWN_OPERATION_STATE`.
 
 The request and recovery rules follow PayPal's official Payouts API reference:
 
