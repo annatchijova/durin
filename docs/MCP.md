@@ -11,6 +11,7 @@ payment.
 | --- | --- | --- |
 | `get_agent_capabilities` | Read-only | States the agent's allowed and forbidden actions. |
 | `list_sources` | Read-only | Lists authorized source files with hashes and bounded content. |
+| `list_imap_sources` | Read-only | Lists authorized mailbox messages (opened read-only; never flags, moves, or deletes) with hashes and bounded content. |
 | `get_business_policy` | Read-only | Returns the merchant policy without secrets. |
 | `list_invoices` | Read-only | Loads a bounded local JSON fixture when configured. |
 | `extract_invoice_facts` | Pure validation | Validates AI candidate fields and attaches source-controlled provenance. |
@@ -43,7 +44,17 @@ PayPal credentials.
 export DURIN_POLICY_JSON='{"merchantName":"Example Merchant","baseCurrency":"USD","maxAmountPerPayment":"1000.00","maxAmountPerBatch":"5000.00","approvalRequiredAbove":"500.00","approvedRecipients":["supplier@example.com"]}'
 export DURIN_INVOICES_PATH=/absolute/path/to/invoices.json
 export DURIN_SOURCE_DIR=/absolute/path/to/authorized-sources
+# Optional: a real mailbox instead of (or alongside) a local directory.
+export DURIN_IMAP_HOST=imap.example.com
+export DURIN_IMAP_USERNAME=merchant@example.com
+export DURIN_IMAP_PASSWORD=app-specific-password
+export DURIN_IMAP_MAILBOX=INBOX
 ```
+
+`list_imap_sources` connects over IMAPS only, selects the mailbox read-only,
+and reads at most `MAX_SOURCES` (100) of the most recent messages per call.
+It never deletes, flags, or moves a message, and the IMAP password never
+leaves the server process — the tool returns sources, never the credential.
 
 Invoice observations are untrusted input. A missing fixture is reported as
 unavailable rather than treated as an empty, successful review.

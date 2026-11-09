@@ -60,18 +60,24 @@ def _kind(path: Path) -> str:
     return "DOCUMENT"
 
 
-def _read_source(path: Path) -> dict[str, Any]:
-    raw = path.read_bytes()
+def build_source_record(raw: bytes, *, source_location: str, kind: str, content_available: bool) -> dict[str, Any]:
+    """Build one attested source record from raw bytes, regardless of origin.
+
+    This is the single construction path for a source: the local filesystem
+    connector and the IMAP connector both call it, so hashing, truncation,
+    and attestation can never diverge between them the way two ad-hoc
+    encoders would.
+    """
     if len(raw) > MAX_SOURCE_BYTES:
-        raise ValueError(f"source exceeds {MAX_SOURCE_BYTES} bytes: {path.name}")
+        raise ValueError(f"source exceeds {MAX_SOURCE_BYTES} bytes: {source_location}")
     digest = _sha256(raw)
     source = {
         "sourceId": digest[:24],
-        "source": str(path),
-        "kind": _kind(path),
+        "source": source_location,
+        "kind": kind,
         "sourceHash": digest,
         "sizeBytes": len(raw),
-        "contentAvailable": path.suffix.casefold() in TEXT_SUFFIXES,
+        "contentAvailable": content_available,
         "validationStatus": "LOADED",
         "requiresReview": False,
     }
@@ -88,6 +94,16 @@ def _read_source(path: Path) -> dict[str, Any]:
         source["requiresReview"] = True
     source["attestation"] = _attest(source)
     return source
+
+
+def _read_source(path: Path) -> dict[str, Any]:
+    raw = path.read_bytes()
+    return build_source_record(
+        raw,
+        source_location=str(path),
+        kind=_kind(path),
+        content_available=path.suffix.casefold() in TEXT_SUFFIXES,
+    )
 
 
 def list_sources(root: str | os.PathLike[str]) -> list[dict[str, Any]]:

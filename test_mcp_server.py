@@ -23,6 +23,20 @@ class MerchantAutomationTests(unittest.TestCase):
     def tearDown(self):
         self.policy.stop()
 
+    def test_imap_sources_report_unavailable_when_unconfigured(self):
+        with patch.dict("os.environ", {}, clear=False):
+            mcp_server.os.environ.pop("DURIN_IMAP_HOST", None)
+            result = mcp_server.list_imap_sources()
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["available"])
+
+    def test_imap_sources_never_return_the_password(self):
+        with patch.dict("os.environ", {"DURIN_IMAP_HOST": "imap.example.com", "DURIN_IMAP_USERNAME": "m", "DURIN_IMAP_PASSWORD": "super-secret"}, clear=False):
+            with patch("mcp_server.ingest_imap_sources", return_value=[]):
+                result = mcp_server.list_imap_sources()
+        self.assertTrue(result["ok"])
+        self.assertNotIn("super-secret", json.dumps(result))
+
     def test_capabilities_have_no_payment_authority(self):
         result = mcp_server.get_agent_capabilities()
         self.assertNotIn("capture_payment", result["can"])

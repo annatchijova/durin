@@ -16,6 +16,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from automation import prepare_proposal
+from source_connector_imap import IMAPSourceConfig, list_imap_sources as ingest_imap_sources
 from source_ingestion import list_sources as ingest_sources, validate_invoice_extraction
 from supplier_operations import analyze_supplier_batch
 from operations_narrative import build_operations_report
@@ -164,6 +165,24 @@ def list_sources() -> dict[str, Any]:
         return {"ok": True, "available": True, "sources": ingest_sources(root)}
     except (OSError, ValueError) as exc:
         return _error("source_listing_failed", str(exc))
+
+
+@mcp.tool()
+def list_imap_sources() -> dict[str, Any]:
+    """List authorized mailbox messages as hashed, read-only sources.
+
+    Opens the mailbox read-only (no flag, move, or delete is ever issued) and
+    never returns the IMAP password to the caller.
+    """
+    if not os.environ.get("DURIN_IMAP_HOST"):
+        return {"ok": True, "available": False, "sources": [], "reason": "DURIN_IMAP_HOST is not configured"}
+    try:
+        config = IMAPSourceConfig.from_env()
+        return {"ok": True, "available": True, "sources": ingest_imap_sources(config)}
+    except (OSError, ValueError) as exc:
+        return _error("imap_listing_failed", str(exc))
+    except Exception as exc:  # noqa: BLE001 - IMAP library errors are not ValueError/OSError
+        return _error("imap_listing_failed", str(exc))
 
 
 @mcp.tool()

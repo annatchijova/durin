@@ -205,7 +205,7 @@ after Level 1 and is not optional scope.
 
 | Constraint | State | Revisit trigger |
 | --- | --- | --- |
-| First authorized email/source boundary | Open, unresolved | Required to complete Level 1. |
+| First authorized email/source boundary | IMAP connector implemented (`source_connector_imap.py`, read-only select, no flag/move/delete, shares `source_ingestion.build_source_record` with the filesystem path); not yet run against a real mailbox — no IMAP credentials were available to test live | Required to complete Level 1. |
 | AI extraction provider and structured output contract | OpenAI extractor, draft ledger, and cross-source/policy contradiction detection implemented (see `docs/AI_EXTRACTION.md`); not yet run against a real authorized source batch | Required to complete Level 1. |
 | PayPal Payouts Sandbox access and capability | Live-tested: OAuth, `create_payout`, and `get_payout` confirmed against the real Sandbox (see docs/PAYPAL_ADAPTER.md); the MCP-driven approval and source-connector flow around it is still open | Required to start Level 2. |
 | Payout settlement evidence | Open, unresolved | Resolve before claiming final settlement. |
