@@ -37,6 +37,8 @@ HTTP requests.
   operations. It requires PayPal's `sender_item_id` to match the original
   request and checks the returned receiver against the approved receiver; it
   never matches by position, amount, or recipient alone.
+- `paypal_report_workflow.py` composes normalization, provider binding, and the
+  deterministic supplier report. It is offline and does not submit a request.
 - The request builder rejects duplicate invoice IDs, execution-state
   contradictions, observations before approval, and timezone-naive timestamps.
 
