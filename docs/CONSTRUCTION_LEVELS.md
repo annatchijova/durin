@@ -216,9 +216,19 @@ has not been run against a merchant's actual authorized source batch. Level 2
 PayPal integration is mandatory after Level 1 and is not optional scope; its
 Sandbox execution path is now live-confirmed, but the MCP-driven approval flow
 that would drive it from an agent session end to end is still assembled from
-pieces tested individually, not run as one continuous live session. No
-frontend exists yet; per the current plan it is deliberately deferred until
-the AI/MCP path can run the flow end to end on its own.
+pieces tested individually, not run as one continuous live session.
+
+A frontend now exists (`frontend/`, Next.js, bilingual en/es) behind
+`api_server.py` (FastAPI). Live-tested end to end through the browser: real
+OpenAI extraction, a real cross-source contradiction (the model swapped
+supplier/recipient between two sources, caught by `CONFLICTING_SUPPLIER_IDENTITY`
+and visibly distinguished from reconciled rows), proposal, approval, and a
+real PayPal Sandbox submission reconciled to `SUCCESS`. It is a working
+first product surface, not a mockup -- but has a merchant-identity gap: the
+`approverId` on the approval step is free-text, not an authenticated
+session, so it does not yet carry real authority. Still open: a non-demo
+auth boundary for the approval action, and a real-time view of a payout
+still `PENDING` (the UI currently requires a manual "refresh" click).
 
 ## Open constraints
 

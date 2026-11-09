@@ -120,8 +120,13 @@ Durin is being rebuilt as a standalone application. The first complete product
 level is supplier intelligence: authorized source ingestion, AI extraction,
 provenance, deterministic automation, reconciliation, metrics, and reports.
 The mandatory second level integrates PayPal Payouts end to end. `RECEIVABLE`
-is a separate post-hackathon domain. Frontend code will be selected and added
-later from the repositories designated for this project.
+is a separate post-hackathon domain.
+
+A frontend (`frontend/`, Next.js) shows the invoice journey end to end --
+evidence received, AI extraction with cited excerpts, cross-source
+contradictions, proposal, human approval, PayPal result -- against
+`api_server.py` (FastAPI), the only process that holds PayPal/OpenAI
+credentials. See `frontend/README.md` to run it.
 
 See [construction levels](docs/CONSTRUCTION_LEVELS.md) for the destination,
 cross-level contracts, adversarial gates, and open constraints.
