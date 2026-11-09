@@ -18,7 +18,7 @@ export function Navbar() {
           <span className="hidden text-[12px] text-ink-500 sm:inline">— {t("nav.tagline")}</span>
         </Link>
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-[13px] font-semibold text-ink-700 hover:text-brand">
+          <Link href="/cases" className="text-[13px] font-semibold text-ink-700 hover:text-brand">
             {t("nav.cases")}
           </Link>
           <LanguageToggle />

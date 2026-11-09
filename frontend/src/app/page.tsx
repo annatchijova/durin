@@ -1,9 +1,5 @@
-import { listCases } from "@/lib/api";
-import { DashboardView } from "@/components/DashboardView";
+import { LandingView } from "@/components/LandingView";
 
-export const dynamic = "force-dynamic";
-
-export default async function DashboardPage() {
-  const { cases } = await listCases();
-  return <DashboardView cases={cases} />;
+export default function Home() {
+  return <LandingView />;
 }
