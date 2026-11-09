@@ -42,8 +42,6 @@ Durin gives a merchant one controlled operations workflow:
 
 The agent prepares and explains the work. The merchant remains the authority for
 any monetary action.
-Durin has no blockchain, smart contracts, cryptocurrency, wallet, or independent
-on-chain verifier.
 
 ## Why merchants use it
 
@@ -112,8 +110,6 @@ official developer documentation is the source of truth for API behavior:
 
 ### Out of scope
 
-- Blockchain or smart-contract payments.
-- Wallets, tokens, RPCs, and on-chain verification.
 - An AI-controlled private key or unattended payment capture.
 - `RECEIVABLE` until the supplier domain and the relevant PayPal payout capability are established.
 - A full accounting replacement.
