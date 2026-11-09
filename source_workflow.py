@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from contradiction_detection import detect_source_contradictions
 from source_ingestion import MAX_SOURCES, validate_invoice_extraction, validate_source_record
 from supplier_report import build_supplier_report
 
@@ -47,17 +48,22 @@ def build_report_from_extractions(
         if candidate is None:
             manifest.append(_manifest(source, "MISSING_EXTRACTION"))
             continue
-        extracted = validate_invoice_extraction(
-            source=source,
-            candidate=candidate,
-            extractor_version=extractor_version,
-        )
+        try:
+            extracted = validate_invoice_extraction(
+                source=source,
+                candidate=candidate,
+                extractor_version=extractor_version,
+            )
+        except (ValueError, TypeError, KeyError) as exc:
+            manifest.append(_manifest(source, "EXTRACTION_REJECTED", rejection_reason=str(exc)))
+            continue
         invoice = dict(extracted["invoice"])
         invoice["invoiceId"] = f"source-{source_id}"
         invoice["provenance"] = extracted["fields"]
         invoice["requiresReview"] = extracted["requiresReview"]
         invoices.append(invoice)
         manifest.append(_manifest(source, "EXTRACTED", extracted["requiresReview"]))
+    contradictions = detect_source_contradictions(invoices)
     report = build_supplier_report(
         policy=policy,
         invoices=invoices,
@@ -70,22 +76,27 @@ def build_report_from_extractions(
         "extractorVersion": extractor_version,
         "sourceCount": len(sources),
         "extractedCount": len(invoices),
-        "missingExtractionCount": len(sources) - len(invoices),
+        "missingExtractionCount": sum(item["validationStatus"] == "MISSING_EXTRACTION" for item in manifest),
+        "rejectedExtractionCount": sum(item["validationStatus"] == "EXTRACTION_REJECTED" for item in manifest),
         "requiresReviewCount": sum(item.get("requiresReview") == "true" for item in manifest),
     }
+    report["contradictions"] = contradictions
     return report
 
 
-def _manifest(source: dict[str, Any], status: str, requires_review: bool = True) -> dict[str, str]:
+def _manifest(source: dict[str, Any], status: str, requires_review: bool = True, *, rejection_reason: str | None = None) -> dict[str, str]:
     source_id = source.get("sourceId")
     source_hash = source.get("sourceHash")
     location = source.get("source")
     if not all(isinstance(value, str) and value for value in (source_id, source_hash, location)):
         raise ValueError("source provenance is incomplete")
-    return {
+    entry = {
         "sourceId": source_id,
         "source": location,
         "sourceHash": source_hash,
         "validationStatus": status,
         "requiresReview": str(bool(requires_review)).lower(),
     }
+    if rejection_reason is not None:
+        entry["rejectionReason"] = rejection_reason[:500]
+    return entry

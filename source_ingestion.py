@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,8 @@ MAX_SOURCES = 100
 MAX_CONTENT_CHARS = 200_000
 TEXT_SUFFIXES = {".eml", ".txt", ".md", ".csv", ".json"}
 SUPPORTED_EXTRACTION_KINDS = {"INVOICE", "EMAIL", "DOCUMENT"}
+_AMOUNT_RE = re.compile(r"\d+(?:\.\d{1,4})?")
+_CURRENCY_RE = re.compile(r"[A-Za-z]{3}")
 ALLOWED_INVOICE_FIELDS = {
     "supplier",
     "invoiceNumber",
@@ -128,6 +131,10 @@ def validate_invoice_extraction(
         value = candidate[field]
         if not isinstance(value, str) or not value.strip() or len(value) > 256:
             raise ValueError(f"extracted field is invalid: {field}")
+        if field == "amount" and not _AMOUNT_RE.fullmatch(value.strip()):
+            raise ValueError("extracted amount must be a bare decimal number, no currency symbol or code")
+        if field == "currency" and not _CURRENCY_RE.fullmatch(value.strip()):
+            raise ValueError("extracted currency must be a three-letter code")
         excerpt = evidence.get(field, "")
         excerpt_is_supported = (
             isinstance(excerpt, str)

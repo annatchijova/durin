@@ -73,11 +73,13 @@ class RedTeamFixTests(unittest.TestCase):
             contract_path = Path(directory) / "contract.txt"
             contract_path.write_text("Acme invoice A-1", encoding="utf-8")
             contract = next(item for item in list_sources(directory) if item["kind"] == "CONTRACT")
-            with self.assertRaisesRegex(ValueError, "not eligible"):
-                build_report_from_extractions(
-                    policy=POLICY, sources=[contract], candidates_by_source_id={source["sourceId"]: candidate},
-                    operations=[], report_id="r", observed_at="2026-11-08T12:00:00Z", extractor_version="test",
-                )
+            report = build_report_from_extractions(
+                policy=POLICY, sources=[contract], candidates_by_source_id={contract["sourceId"]: candidate},
+                operations=[], report_id="r", observed_at="2026-11-08T12:00:00Z", extractor_version="test",
+            )
+            self.assertEqual(report["metrics"]["invoiceCount"], 0)
+            rejected = next(item for item in report["sourceManifest"] if item["validationStatus"] == "EXTRACTION_REJECTED")
+            self.assertIn("not eligible", rejected["rejectionReason"])
 
     def test_review_marker_and_empty_allowlist_fail_closed(self):
         result = prepare_proposal([invoice(requiresReview=True)], POLICY)
