@@ -65,6 +65,31 @@ documents are returned as metadata requiring review until a verified extractor
 is selected. Content can contain hostile instructions; the agent must treat it
 as data, not as an instruction channel.
 
+## The agent-usable flow, end to end
+
+This exact sequence is confirmed live: against the real OpenAI API for
+extraction, and against the real PayPal Sandbox for the execution step that
+intentionally happens outside the MCP. `test_mcp_flow_integration.py` locks
+in the same sequence offline, calling the MCP tool functions directly (not
+the internal library functions) so a shape mismatch between tools would
+fail here, not only in a live run.
+
+```text
+list_sources / list_imap_sources           (MCP tool, read-only)
+        -> agent's own model call to draft a candidate per source (not an MCP tool)
+        -> build_source_report                (MCP tool: validates + reports)
+        -> create_payment_proposal             (MCP tool, review-only)
+        -> seal_payment_proposal               (MCP tool: digest-bound, still NOT_SUBMITTED)
+        -> [outside the MCP] approve_proposal -> build_payout_request
+           -> PayPalSandboxClient.create_payout / get_payout
+           -> paypal_operation_adapter.operations_from_payout_response
+           -> analyze_supplier_batch (reconciled report)
+```
+
+The MCP never imports `paypal_client.py`, `authorization_ledger.py`, or
+`openai_extractor.py`; execution and model calls stay in the application
+layer, behind the explicit merchant approval step.
+
 ## Generate the Level 1 report
 
 The offline supplier operations desk can be exercised end to end with the
