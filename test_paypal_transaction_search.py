@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from paypal_transaction_search import chunk_date_range, filter_transactions, normalize_transaction
 
 
-def raw_transaction(txn_id, date, amount, email="supplier@example.com", subject="Invoice payment", note=""):
+def raw_transaction(txn_id, date, amount, email="supplier@example.com", subject="Invoice payment", note="", name=""):
     return {
         "transaction_info": {
             "transaction_id": txn_id,
@@ -17,7 +17,7 @@ def raw_transaction(txn_id, date, amount, email="supplier@example.com", subject=
             "transaction_note": note,
             "invoice_id": f"INV-{txn_id}",
         },
-        "payer_info": {"email_address": email, "payer_name": {"alternate_full_name": "Globex Supplies"}},
+        "payer_info": {"email_address": email, "payer_name": {"alternate_full_name": name}},
     }
 
 
@@ -86,6 +86,35 @@ class FilterTransactionsTests(unittest.TestCase):
     def test_keywords_match_subject_or_invoice(self):
         result = filter_transactions(self.transactions, keywords=["Consulting"])
         self.assertEqual([t["transactionId"] for t in result], ["T-3"])
+
+    def test_generic_keyword_does_not_substring_match_an_unrelated_word(self):
+        # Real finding (live Sandbox data, 2026-11-09): the model's keyword
+        # "pay" is a plain substring of "Durin approved supplier payout" --
+        # the subject on every payout this product makes. That must not
+        # count as a keyword match.
+        transactions = [normalize_transaction(raw_transaction("T-1", "2026-11-09T00:00:00Z", "1.00", subject="Durin approved supplier payout"))]
+        result = filter_transactions(transactions, keywords=["pay"])
+        self.assertEqual(result, [])
+
+    def test_keyword_still_matches_as_a_whole_word(self):
+        transactions = [normalize_transaction(raw_transaction("T-1", "2026-11-09T00:00:00Z", "1.00", subject="Consulting invoice"))]
+        result = filter_transactions(transactions, keywords=["Consulting"])
+        self.assertEqual([t["transactionId"] for t in result], ["T-1"])
+
+    def test_amount_match_survives_a_counterparty_hint_paypal_cannot_resolve(self):
+        # Real finding (live Sandbox data, 2026-11-09): a merchant's question
+        # names a supplier by business name -- "Globex Supplies" -- but
+        # PayPal's own transaction record only ever has the counterparty's
+        # PayPal email, never that business name. Requiring both hints to
+        # match would silently drop the one transaction the amount hint
+        # correctly identified. It must still surface, just outranked by
+        # anything that also matches the name.
+        transactions = [
+            normalize_transaction(raw_transaction("T-GLOBEX", "2026-11-09T00:00:00Z", "42.50", email="sb-personal@example.com", subject="Durin approved supplier payout")),
+            normalize_transaction(raw_transaction("T-OTHER", "2026-10-01T00:00:00Z", "9.99", email="sb-personal@example.com", subject="Durin approved supplier payout")),
+        ]
+        result = filter_transactions(transactions, counterparty_hint="Globex Supplies", amount_hint="42")
+        self.assertEqual([t["transactionId"] for t in result], ["T-GLOBEX"])
 
 
 if __name__ == "__main__":

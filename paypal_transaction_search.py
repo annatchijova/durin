@@ -7,6 +7,7 @@ module decides which real, already-fetched PayPal records match them.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -85,6 +86,24 @@ def _matches_text(haystacks: list[str], needle: str) -> bool:
     return bool(needle_cf) and any(needle_cf in haystack.casefold() for haystack in haystacks if haystack)
 
 
+def _matches_keyword(haystacks: list[str], keyword: str) -> bool:
+    """Whole-word match only.
+
+    A generic keyword like "pay" from an everyday question ("did we *pay*
+    ... recently") is a plain substring of "Durin approved supplier
+    *pay*out" -- the subject on every single payout this product creates.
+    Substring matching here would mark nearly every transaction as
+    "matching the question," burying the one the amount hint already
+    correctly ranked first. Word-boundary matching keeps that false
+    positive out without needing a hand-maintained stopword list.
+    """
+    word = keyword.strip()
+    if len(word) < 3:
+        return False
+    pattern = re.compile(r"\b" + re.escape(word) + r"\b", re.IGNORECASE)
+    return any(pattern.search(haystack) for haystack in haystacks if haystack)
+
+
 def filter_transactions(
     transactions: list[dict[str, Any]],
     *,
@@ -95,24 +114,37 @@ def filter_transactions(
 ) -> list[dict[str, Any]]:
     """Deterministically rank already-fetched, real transactions against hints.
 
-    A hint that matches nothing is not an error: it just narrows to zero
-    results, which the caller must report as "not found," never as a
+    Hints are scored, not required all-at-once: PayPal's own record only
+    knows a counterparty's email, never a business name Durin itself
+    extracted from an invoice, so a natural-language question's name hint
+    routinely cannot match anything in PayPal's data even when the amount
+    hint is exactly right. Requiring every hint to match would silently
+    throw away a real transaction because of a hint that was never
+    checkable against PayPal's fields; scoring keeps it ranked below a
+    transaction that matches on every hint, rather than discarding it.
+
+    When no hint is given at all, every transaction scores zero and all are
+    returned (most recent first). When hints are given but none matches
+    anything, the result is empty -- that is a real "not found," never a
     fabricated best guess.
     """
     if isinstance(limit, bool) or not isinstance(limit, int) or not (1 <= limit <= 100):
         raise ValueError("limit must be between 1 and 100")
-    matched = []
+    hints_given = bool(amount_hint) or bool(counterparty_hint) or bool(keywords)
+    scored: list[tuple[int, dict[str, Any]]] = []
     for transaction in transactions:
-        if amount_hint and not _matches_amount(transaction, amount_hint):
-            continue
-        if counterparty_hint and not _matches_text(
+        score = 0
+        if amount_hint and _matches_amount(transaction, amount_hint):
+            score += 1
+        if counterparty_hint and _matches_text(
             [transaction["counterpartyEmail"], transaction["counterpartyName"]], counterparty_hint
         ):
-            continue
+            score += 1
         if keywords:
             haystacks = [transaction["subject"], transaction["note"], transaction["invoiceId"], transaction["transactionId"]]
-            if not any(_matches_text(haystacks, keyword) for keyword in keywords):
-                continue
-        matched.append(transaction)
-    matched.sort(key=lambda t: t["date"], reverse=True)
-    return matched[:limit]
+            if any(_matches_keyword(haystacks, keyword) for keyword in keywords):
+                score += 1
+        if not hints_given or score > 0:
+            scored.append((score, transaction))
+    scored.sort(key=lambda item: (item[0], item[1]["date"]), reverse=True)
+    return [transaction for _, transaction in scored[:limit]]
