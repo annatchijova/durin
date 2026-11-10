@@ -9,7 +9,7 @@ export function Navbar() {
   const { t } = useI18n();
   return (
     <header className="nav-glass">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink-900 text-white">
             <ShieldCheck className="h-4.5 w-4.5" />

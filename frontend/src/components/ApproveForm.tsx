@@ -41,8 +41,13 @@ export function ApproveForm({ reportId, totalAmount, currency }: { reportId: str
         {t("approve.description")} <strong className="font-semibold text-ink-900">{formatMoney(totalAmount, currency)}</strong>. {t("approve.note")}
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label htmlFor="approver-id" className="w-full text-[12px] font-medium text-ink-700">
+          {t("approve.label")}
+        </label>
         <input
+          id="approver-id"
           type="text"
+          autoComplete="email"
           value={approverId}
           onChange={(e) => setApproverId(e.target.value)}
           placeholder={t("approve.placeholder")}
@@ -53,7 +58,7 @@ export function ApproveForm({ reportId, totalAmount, currency }: { reportId: str
           {t("approve.submit")}
         </button>
       </div>
-      {error && <p className="mt-1.5 text-[12px] text-state-exception">{error}</p>}
+      {error && <p role="alert" className="mt-1.5 text-[12px] text-state-exception">{error}</p>}
     </form>
   );
 }

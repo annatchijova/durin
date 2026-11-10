@@ -15,7 +15,7 @@ export function LandingView() {
   ];
 
   return (
-    <div className="pb-16 pt-4">
+    <div className="mx-auto max-w-5xl pb-16 pt-4">
       <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-ink-900/8 bg-white px-2 py-1 pl-3 shadow-soft">

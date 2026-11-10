@@ -55,7 +55,7 @@ export function ActionButton({
         {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
         {isPending ? pendingLabel ?? label : label}
       </button>
-      {error && <p className="mt-1.5 text-[12px] text-state-exception">{error}</p>}
+      {error && <p role="alert" className="mt-1.5 text-[12px] text-state-exception">{error}</p>}
     </div>
   );
 }

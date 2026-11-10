@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { FileText, Sparkles, ShieldAlert, ShieldCheck, CircleCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
@@ -21,9 +21,12 @@ const GLYPHS = ["INV-2026-001", "42.50 USD", "SUCCESS", "sb-…paypal.com"];
  */
 export function DurinHeroVisual() {
   const { t } = useI18n();
+  // With "reduce motion" on, the panel renders in its final state: no
+  // drifting glyphs, no pulsing, no staggered entrance.
+  const reduce = useReducedMotion();
   return (
     <div className="relative">
-      {GLYPHS.map((g, i) => (
+      {!reduce && GLYPHS.map((g, i) => (
         <motion.span
           key={g}
           initial={{ opacity: 0 }}
@@ -39,7 +42,7 @@ export function DurinHeroVisual() {
       <div className="card-solid shadow-lift relative z-10 rounded-3xl p-2">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1220] via-[#0F2A52] to-[#003087] p-6">
           <motion.div
-            animate={{ scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] }}
+            animate={reduce ? undefined : { scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             className="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-brand/25 blur-2xl"
           />
@@ -57,7 +60,7 @@ export function DurinHeroVisual() {
                 </div>
               </div>
               <motion.span
-                animate={{ opacity: [1, 0.4, 1] }}
+                animate={reduce ? undefined : { opacity: [1, 0.4, 1] }}
                 transition={{ duration: 2.4, repeat: Infinity }}
                 className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wide text-white/90"
               >
@@ -72,7 +75,7 @@ export function DurinHeroVisual() {
                 return (
                   <motion.div
                     key={s.labelKey}
-                    initial={{ opacity: 0, x: -14 }}
+                    initial={reduce ? false : { opacity: 0, x: -14 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 + i * 0.18, duration: 0.5, ease: "easeOut" }}
                     className="flex items-center gap-3 rounded-xl bg-white/[0.06] px-3 py-2.5"
@@ -86,7 +89,7 @@ export function DurinHeroVisual() {
                     </div>
                     {i === STEPS.length - 1 && (
                       <motion.span
-                        initial={{ opacity: 0, scale: 0.8 }}
+                        initial={reduce ? false : { opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 + STEPS.length * 0.18 + 0.2 }}
                         className="ml-auto rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300"

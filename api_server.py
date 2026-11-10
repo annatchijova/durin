@@ -126,6 +126,9 @@ def health() -> dict[str, Any]:
     return {"ok": True, "paypalConfigured": bool(os.environ.get("PAYPAL_CLIENT_ID")), "openaiConfigured": bool(os.environ.get("OPENAI_API_KEY"))}
 
 
+_IDENTITY_CONFLICT_REASONS = frozenset({"CONFLICTING_SUPPLIER_IDENTITY", "CONFLICTING_INVOICE_FACTS"})
+
+
 @app.get("/api/cases")
 def list_cases() -> dict[str, Any]:
     cases = []
@@ -134,12 +137,20 @@ def list_cases() -> dict[str, Any]:
             case = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
+        rows = case["report"].get("rows", [])
         cases.append({
             "reportId": case["reportId"],
             "createdAt": case["createdAt"],
             "stage": case["stage"],
             "metrics": case["report"]["metrics"],
             "contradictionCount": len(case["report"].get("contradictions", [])),
+            # Additive, read-only context for the dashboard. Both are plain
+            # projections of the stored report rows: identity conflicts are
+            # raised by the engine as row reasons, not as report
+            # contradictions, so the dashboard needs them counted separately
+            # to agree with the case page.
+            "identityConflictCount": sum(1 for row in rows if _IDENTITY_CONFLICT_REASONS & set(row.get("reasons", []))),
+            "suppliers": sorted({row["supplier"] for row in rows if row.get("supplier")}),
         })
     cases.sort(key=lambda item: item["createdAt"], reverse=True)
     return {"cases": cases}
