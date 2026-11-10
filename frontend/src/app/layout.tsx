@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.variable} ${mono.variable} app-bg font-sans`}>
         <I18nProvider>
           <Navbar />
-          <main className="mx-auto max-w-5xl px-5 py-8">{children}</main>
+          <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
           <ChatWidget />
         </I18nProvider>
       </body>

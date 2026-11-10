@@ -79,6 +79,9 @@ class APIServerTests(unittest.TestCase):
         listed = self.client.get("/api/cases")
         self.assertEqual(listed.status_code, 200)
         self.assertEqual(len(listed.json()["cases"]), 1)
+        summary = listed.json()["cases"][0]
+        self.assertEqual(summary["suppliers"], sorted({row["supplier"] for row in case["report"]["rows"]}))
+        self.assertEqual(summary["identityConflictCount"], 0)
 
         fetched = self.client.get(f"/api/cases/{report_id}")
         self.assertEqual(fetched.status_code, 200)

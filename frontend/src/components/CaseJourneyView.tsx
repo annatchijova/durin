@@ -4,6 +4,10 @@ import { useI18n } from "@/lib/i18n";
 import type { Case } from "@/lib/types";
 import { formatDate, formatMoney, shortHash } from "@/lib/utils";
 import { classifyReasons, classifyOperationState } from "@/lib/classify";
+import { STEP_ANCHOR, identityConflictRows as findIdentityConflictRows, projectDecision } from "@/lib/decision";
+import { DecisionSummary } from "./DecisionSummary";
+import { ActivityLog } from "./ActivityLog";
+import { ActorChip, ActorLegend } from "./ActorChip";
 import { JourneyTimeline, JourneyStep } from "./JourneyStep";
 import { CheckList } from "./CheckList";
 import { ContradictionPanel } from "./ContradictionPanel";
@@ -26,32 +30,46 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
   // supplier_operations.py's own row reasons, not in report.contradictions.
   // Surface both here so this step never says "none found" while rows
   // below are excluded for exactly this.
-  const identityConflictRows = report.rows.filter(
-    (r) => r.reasons.includes("CONFLICTING_SUPPLIER_IDENTITY") || r.reasons.includes("CONFLICTING_INVOICE_FACTS"),
-  );
-  const totalContradictions = report.contradictions.length + identityConflictRows.length;
+  const identityConflictRows = findIdentityConflictRows(report.rows);
+  const decision = projectDecision(caseData);
+  const totalContradictions = decision.contradictionCount;
+  // A submission PayPal never confirmed is not "done": its outcome is unknown.
+  const submissionUnconfirmed = decision.submissionError !== null;
 
   const stageIndex = STAGE_ORDER.indexOf(stage);
   const reached = (minStage: string) => stageIndex >= STAGE_ORDER.indexOf(minStage);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div>
-        <p className="font-mono text-[12px] text-ink-500">{caseData.reportId}</p>
+        <p className="font-mono text-[12px] text-ink-500 [overflow-wrap:anywhere]">{caseData.reportId}</p>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-[24px] font-semibold text-ink-900">{t("journey.title")}</h1>
           <span className="text-[13px] text-ink-500">{formatDate(caseData.createdAt, lang)}</span>
         </div>
+        <div className="mt-3">
+          <ActorLegend />
+        </div>
       </div>
 
-      <section className="card-solid rounded-2xl p-6 shadow-soft">
+      {/* Summary first in the DOM (and on small screens); a sticky side column from lg up. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <aside className="lg:sticky lg:top-24 lg:order-2 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+        <DecisionSummary decision={decision} />
+      </aside>
+
+      <div className="flex min-w-0 flex-col gap-8 lg:order-1">
+      <section aria-labelledby="journey-steps-title" className="card-solid rounded-2xl p-5 shadow-soft sm:p-6">
+        <h2 id="journey-steps-title" className="sr-only">
+          {t("journey.stepsHeading")}
+        </h2>
         <JourneyTimeline>
-          <JourneyStep index={1} title={t("journey.step1.title")} state="done" meta={`${report.sourceManifest.length} ${t("journey.sources")}`}>
+          <JourneyStep id={STEP_ANCHOR.evidence} actor={<ActorChip actor="source" />} index={1} title={t("journey.step1.title")} state="done" meta={`${report.sourceManifest.length} ${t("journey.sources")}`}>
             <ul className="m-0 flex flex-col gap-1.5 p-0">
               {report.sourceManifest.map((entry) => (
-                <li key={entry.sourceId} className="flex items-center gap-2 rounded-lg bg-ink-900/[0.03] px-3 py-1.5 text-[12.5px]">
-                  <span className="truncate text-ink-700">{entry.source.split("/").pop()}</span>
-                  <span className="ml-auto font-mono text-ink-400">{shortHash(entry.sourceHash)}</span>
+                <li key={entry.sourceId} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ink-900/[0.03] px-3 py-1.5 text-[12.5px]">
+                  <span className="min-w-0 text-ink-700 [overflow-wrap:anywhere]">{entry.source.split("/").pop()}</span>
+                  <span className="ml-auto font-mono text-ink-500">{shortHash(entry.sourceHash)}</span>
                   <StateBadge
                     size="sm"
                     state={entry.validationStatus === "EXTRACTED" ? "ready" : entry.validationStatus === "MISSING_EXTRACTION" ? "pending" : "exception"}
@@ -62,7 +80,7 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
             </ul>
           </JourneyStep>
 
-          <JourneyStep index={2} title={t("journey.step2.title")} state="done" meta={`${report.extractedInvoices.length} / ${report.extraction.rejectedExtractionCount} ${t("journey.step2.meta")}`}>
+          <JourneyStep id={STEP_ANCHOR.extraction} actor={<ActorChip actor="ai" />} index={2} title={t("journey.step2.title")} state="done" meta={`${report.extractedInvoices.length} / ${report.extraction.rejectedExtractionCount} ${t("journey.step2.meta")}`}>
             <div className="flex flex-col gap-3">
               {report.extractedInvoices.map((invoice) => (
                 <FieldEvidence key={invoice.invoiceId} invoice={invoice} />
@@ -76,6 +94,8 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
           </JourneyStep>
 
           <JourneyStep
+            id={STEP_ANCHOR.contradictions}
+            actor={<ActorChip actor="engine" />}
             index={3}
             title={t("journey.step3.title")}
             state="done"
@@ -100,6 +120,8 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
           </JourneyStep>
 
           <JourneyStep
+            id={STEP_ANCHOR.proposal}
+            actor={<ActorChip actor="engine" />}
             index={4}
             title={t("journey.step4.title")}
             state={reached("PROPOSED") ? "done" : "active"}
@@ -111,40 +133,47 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
                   {caseData.proposal.items.length} {t("journey.step4.items")}{" "}
                   <strong className="font-semibold text-ink-900">{formatMoney(caseData.proposal.totalAmount, caseData.proposal.currency)}</strong>
                 </p>
-                <p className="mt-1 font-mono text-[11px] text-ink-400">{t("journey.step4.digest")} {shortHash(caseData.proposalDigest!, 16)}</p>
+                <p className="mt-1 font-mono text-[11px] text-ink-500">{t("journey.step4.digest")} {shortHash(caseData.proposalDigest!, 16)}</p>
               </div>
             ) : readyRows.length > 0 ? (
               <ActionButton url={`/api/cases/${caseData.reportId}/proposal`} label={t("journey.step4.action")} pendingLabel={t("journey.step4.pending")} />
             ) : (
-              <p className="text-[13px] text-ink-400">{t("journey.step4.none")}</p>
+              <p className="text-[13px] text-ink-500">{t("journey.step4.none")}</p>
             )}
           </JourneyStep>
 
-          <JourneyStep index={5} title={t("journey.step5.title")} state={reached("APPROVED") ? "done" : caseData.proposal ? "active" : "todo"}>
+          <JourneyStep id={STEP_ANCHOR.approval} actor={<ActorChip actor="human" />} index={5} title={t("journey.step5.title")} state={reached("APPROVED") ? "done" : caseData.proposal ? "active" : "todo"}>
             {caseData.authorization ? (
               <div className="rounded-xl border border-ink-900/[0.08] bg-white p-4 text-[13px] text-ink-700">
                 {t("journey.step5.authorizedBy")} <strong className="font-semibold text-ink-900">{caseData.authorization.approverId}</strong>{" "}
                 {t("journey.step5.on")} {formatDate(caseData.authorization.approvedAt, lang)}.
-                <p className="mt-1 font-mono text-[11px] text-ink-400">authorizationId {caseData.authorization.authorizationId}</p>
+                <p className="mt-1 font-mono text-[11px] text-ink-500">authorizationId {caseData.authorization.authorizationId}</p>
               </div>
             ) : caseData.proposal ? (
               <ApproveForm reportId={caseData.reportId} totalAmount={caseData.proposal.totalAmount} currency={caseData.proposal.currency} />
             ) : (
-              <p className="text-[13px] text-ink-400">{t("journey.step5.waiting")}</p>
+              <p className="text-[13px] text-ink-500">{t("journey.step5.waiting")}</p>
             )}
           </JourneyStep>
 
-          <JourneyStep index={6} title={t("journey.step6.title")} state={reached("SUBMITTED") ? "done" : caseData.authorization ? "active" : "todo"} isLast>
+          <JourneyStep
+            id={STEP_ANCHOR.paypal}
+            actor={<ActorChip actor="paypal" />}
+            index={6}
+            title={t("journey.step6.title")}
+            state={submissionUnconfirmed ? "attention" : reached("SUBMITTED") ? "done" : caseData.authorization ? "active" : "todo"}
+            isLast
+          >
             {caseData.normalizedPayout ? (
               <div className="flex flex-col gap-3">
                 <div className="rounded-xl border border-ink-900/[0.08] bg-white p-4 text-[13px]">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[12px] text-ink-500">{t("journey.step6.batch")} {caseData.normalizedPayout.payoutBatchId}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-mono text-[12px] text-ink-500 [overflow-wrap:anywhere]">{t("journey.step6.batch")} {caseData.normalizedPayout.payoutBatchId}</span>
                     <StateBadge state={classifyOperationState(caseData.normalizedPayout.providerBatchStatus)} label={caseData.normalizedPayout.providerBatchStatus} />
                   </div>
                   <ul className="mt-2 flex flex-col gap-1">
                     {caseData.normalizedPayout.items.map((item) => (
-                      <li key={item.payoutItemId} className="flex items-center justify-between">
+                      <li key={item.payoutItemId} className="flex flex-wrap items-center justify-between gap-2">
                         <span className="font-mono text-[11.5px] text-ink-500">{item.payoutItemId}</span>
                         <StateBadge size="sm" state={classifyOperationState(item.providerStatus)} label={item.providerStatus} />
                       </li>
@@ -154,17 +183,29 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
                 <ActionButton url={`/api/cases/${caseData.reportId}/refresh`} label={t("journey.step6.refresh")} variant="ghost" />
               </div>
             ) : caseData.authorization ? (
-              <ActionButton url={`/api/cases/${caseData.reportId}/submit`} label={t("journey.step6.action")} pendingLabel={t("journey.step6.pending")} />
+              <div className="flex flex-col gap-3">
+                {submissionUnconfirmed && (
+                  <div role="status" className="rounded-xl border border-state-exception/25 bg-state-exceptionBg/60 px-3.5 py-3 text-[12.5px] text-state-exception">
+                    <p className="font-semibold">{t("journey.step6.uncertain")}</p>
+                    <p className="mt-1 font-mono text-[11.5px]">
+                      {t("journey.step6.httpStatus")} {caseData.payoutError?.status ?? t("journey.step6.noStatus")}
+                    </p>
+                  </div>
+                )}
+                <ActionButton url={`/api/cases/${caseData.reportId}/submit`} label={t("journey.step6.action")} pendingLabel={t("journey.step6.pending")} />
+              </div>
             ) : (
-              <p className="text-[13px] text-ink-400">{t("journey.step6.waiting")}</p>
+              <p className="text-[13px] text-ink-500">{t("journey.step6.waiting")}</p>
             )}
           </JourneyStep>
         </JourneyTimeline>
       </section>
 
       {excludedRows.length > 0 && (
-        <section>
-          <h2 className="text-[16px] font-semibold text-ink-900">{t("exceptions.title")}</h2>
+        <section aria-labelledby={STEP_ANCHOR.exceptions}>
+          <h2 id={STEP_ANCHOR.exceptions} tabIndex={-1} className="scroll-mt-24 text-[16px] font-semibold text-ink-900 outline-none">
+            {t("exceptions.title")}
+          </h2>
           <p className="mt-1 text-[13px] text-ink-500">{t("exceptions.subtitle")}</p>
           <div className="mt-3 flex flex-col gap-3">
             {excludedRows.map((row) => (
@@ -183,6 +224,10 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
           </div>
         </section>
       )}
+
+      <ActivityLog caseData={caseData} />
+      </div>
+      </div>
     </div>
   );
 }

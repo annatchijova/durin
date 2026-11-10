@@ -22,9 +22,26 @@ export function ChatWidget() {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [isPending, setIsPending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  // Keyboard contract: opening moves focus into the question field; Escape
+  // (or the toggle) closes and hands focus back to the toggle, so a
+  // keyboard user is never left on a control that no longer exists.
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  const close = () => {
+    setOpen(false);
+    toggleRef.current?.focus();
+  };
+
+  const examples = [t("chat.example1"), t("chat.example2"), t("chat.example3")];
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: reduce ? "auto" : "smooth" });
   }, [turns, open]);
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -65,14 +82,52 @@ export function ChatWidget() {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {open && (
-        <div className="flex h-[480px] w-[360px] flex-col overflow-hidden rounded-2xl border border-ink-900/10 bg-white shadow-lift">
+        <div
+          id="durin-chat-panel"
+          role="dialog"
+          aria-labelledby="durin-chat-title"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              close();
+            }
+          }}
+          className="flex h-[min(480px,calc(100dvh-6.5rem))] w-[min(360px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-ink-900/10 bg-white shadow-lift"
+        >
           <div className="border-b border-ink-900/[0.07] px-4 py-3">
-            <p className="text-[13.5px] font-semibold text-ink-900">{t("chat.title")}</p>
+            <p id="durin-chat-title" className="text-[13.5px] font-semibold text-ink-900">
+              {t("chat.title")}
+            </p>
             <p className="text-[11.5px] text-ink-500">{t("chat.subtitle")}</p>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3">
-            {turns.length === 0 && <p className="text-[12.5px] text-ink-400">{t("chat.empty")}</p>}
+          <div ref={scrollRef} aria-live="polite" className="flex-1 overflow-y-auto px-4 py-3">
+            {turns.length === 0 && (
+              <div className="flex flex-col gap-3">
+                <p className="text-[12.5px] text-ink-500">{t("chat.empty")}</p>
+                <div>
+                  <p className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-500">{t("chat.examples")}</p>
+                  {/* Examples only fill the field; the person still reads, edits and sends. */}
+                  <ul className="m-0 mt-1.5 flex list-none flex-col gap-1.5 p-0">
+                    {examples.map((example) => (
+                      <li key={example}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuestion(example);
+                            inputRef.current?.focus();
+                          }}
+                          className="btn-ghost w-full rounded-xl px-3 py-2 text-left text-[12.5px] text-ink-700"
+                        >
+                          {example}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <p className="text-[11.5px] leading-snug text-ink-500">{t("chat.scope")}</p>
+              </div>
+            )}
             <div className="flex flex-col gap-4">
               {turns.map((turn, i) => (
                 <div key={i} className="flex flex-col gap-2">
@@ -80,7 +135,7 @@ export function ChatWidget() {
                     {turn.question}
                   </div>
                   {turn.pending && (
-                    <div className="flex items-center gap-1.5 text-[12px] text-ink-400">
+                    <div className="flex items-center gap-1.5 text-[12px] text-ink-500">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("chat.sending")}
                     </div>
                   )}
@@ -101,7 +156,7 @@ export function ChatWidget() {
                           ))}
                         </div>
                       )}
-                      <p className="font-mono text-[10.5px] text-ink-400">
+                      <p className="font-mono text-[10.5px] text-ink-500">
                         {turn.response.totalTransactionsScanned} {t("chat.scanned")} {t("chat.over")} {turn.response.searchedMonthsBack} {t("chat.months")}
                       </p>
                     </div>
@@ -113,7 +168,9 @@ export function ChatWidget() {
 
           <form onSubmit={onSubmit} className="flex items-center gap-2 border-t border-ink-900/[0.07] p-3">
             <input
+              ref={inputRef}
               type="text"
+              aria-label={t("chat.inputLabel")}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t("chat.placeholder")}
@@ -132,9 +189,12 @@ export function ChatWidget() {
       )}
 
       <button
+        ref={toggleRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? close() : setOpen(true))}
         aria-label={open ? t("chat.close") : t("chat.open")}
+        aria-expanded={open}
+        aria-controls="durin-chat-panel"
         className={cn(
           "flex h-12 w-12 items-center justify-center rounded-full shadow-lift transition-transform hover:scale-105",
           open ? "bg-ink-900 text-white" : "btn-primary",

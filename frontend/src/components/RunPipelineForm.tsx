@@ -33,10 +33,15 @@ export function RunPipelineForm() {
   return (
     <form onSubmit={onSubmit} className="card-solid rounded-2xl p-5 shadow-soft">
       <h2 className="text-[14px] font-semibold text-ink-900">{t("runForm.title")}</h2>
-      <p className="mt-1 text-[12.5px] text-ink-500">{t("runForm.hint")}</p>
+      <p id="run-source-hint" className="mt-1 text-[12.5px] text-ink-500">{t("runForm.hint")}</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label htmlFor="run-source-dir" className="w-full text-[12px] font-medium text-ink-700">
+          {t("runForm.label")}
+        </label>
         <input
+          id="run-source-dir"
           type="text"
+          aria-describedby="run-source-hint"
           value={sourceDir}
           onChange={(e) => setSourceDir(e.target.value)}
           placeholder={t("runForm.placeholder")}
@@ -47,7 +52,7 @@ export function RunPipelineForm() {
           {isPending ? t("runForm.submitting") : t("runForm.submit")}
         </button>
       </div>
-      {error && <p className="mt-2 text-[12px] text-state-exception">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-[12px] text-state-exception">{error}</p>}
     </form>
   );
 }

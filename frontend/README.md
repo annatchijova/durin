@@ -29,6 +29,49 @@ DURIN_API_URL=http://127.0.0.1:8010 npm run dev
 Then open http://127.0.0.1:3000, and run extraction against a source
 directory from the dashboard.
 
+## Operational layer
+
+The journey is the evidence trail; around it sits a thin operational layer
+that answers "what needs attention, and what is the next authorized step?"
+without becoming a second source of truth.
+
+- `src/lib/decision.ts` is the only place those answers are computed. It is
+  a pure projection of the case `api_server.py` stored: it selects and counts
+  existing fields and never adds amounts (totals arrive from the engine as
+  strings).
+- **Decision summary** (`DecisionSummary.tsx`): stage, sealed total,
+  suppliers, included/excluded invoices, contradictions, proposal digest,
+  PayPal state, and exactly one next step. It holds no mutating control —
+  the next step is a link to the journey step where the real control sits
+  beside its evidence, so approval and submission keep one entry point each.
+  Sticky side column from `lg` up; above the journey on small screens.
+- **Dashboard views** (`DashboardView.tsx`): every tile count is
+  `cases.filter(VIEW_PREDICATE[view]).length` and selecting the tile applies
+  the same predicate, so a metric cannot show a number its filter does not
+  reproduce. The selected view is kept in `?view=`. Views overlap on purpose
+  (a reconciled case can still carry excluded invoices).
+- **Activity record** (`ActivityLog.tsx`): collapsed by default, rendered
+  from the case's structured records in lifecycle order, raw record behind a
+  second disclosure. A timestamp is shown only when the record has one.
+- **Actor ownership** (`ActorChip.tsx`): each step is tagged with who owns it
+  (source, AI, engine, you, PayPal).
+
+### Known limitations
+
+- The backend does not timestamp individual submit or refresh attempts, so
+  the activity record shows "time not recorded" for a failed submission and
+  for reconciliation. It is a projection of current case state, not an
+  append-only event ledger; a real one needs `api_server.py` to record events.
+- The "contradictions" count is the cross-source contradictions plus the rows
+  the engine excluded for a supplier-identity or invoice-fact conflict. Two
+  rows that conflict with each other therefore count as two.
+- Case-card totals are the engine's ready-to-pay totals by currency, not the
+  sealed proposal total (the list endpoint does not carry the proposal).
+- Date filtering uses the browser clock against the case's `createdAt`.
+- Accessibility was checked with axe-core (WCAG 2 A/AA rules) on the landing,
+  dashboard, and case pages at desktop and phone widths, plus a scripted
+  keyboard check of the chat. No screen-reader pass has been done.
+
 ## Design
 
 Palette and component language adapted from two sibling projects'

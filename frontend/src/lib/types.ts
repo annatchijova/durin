@@ -188,4 +188,7 @@ export type CaseSummary = {
   stage: CaseStage;
   metrics: Report["metrics"];
   contradictionCount: number;
+  // Optional: older api_server.py builds do not send these two.
+  identityConflictCount?: number;
+  suppliers?: string[];
 };
