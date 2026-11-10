@@ -120,6 +120,14 @@ export function DecisionSummary({ decision }: { decision: CaseDecision }) {
         {target.anchor ? (
           <a
             href={`#${target.anchor}`}
+            onClick={() => {
+              // The hash alone scrolls only when there is room to scroll; on a short case
+              // nothing visibly happened. Move focus to the step heading so the
+              // target is highlighted (globals.css :target) and announced.
+              const heading = document.getElementById(target.anchor!);
+              heading?.focus({ preventScroll: true });
+              heading?.scrollIntoView({ block: "start", behavior: "smooth" });
+            }}
             className="btn-primary mt-1.5 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-full px-4 text-[13.5px] font-semibold"
           >
             {t(`next.${decision.action}` as Key)}

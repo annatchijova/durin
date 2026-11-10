@@ -5,6 +5,7 @@
 // API's host/port directly.
 
 import type { Case, CaseSummary, ChatResponse } from "./types";
+import { demoEnabled, demoGetCase, demoListCases } from "./demo";
 
 const API_BASE = process.env.DURIN_API_URL ?? "http://127.0.0.1:8010";
 
@@ -17,6 +18,8 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // Recorded demo (see lib/demo.ts): reads come from the snapshot, writes are refused.
+  if (demoEnabled()) throw new ApiError(503, "Recorded demo: this action needs a live api_server.py and runs in the video, not here.");
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     // ngrok-skip-browser-warning: harmless against a real deployment, but
@@ -42,11 +45,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function listCases(): Promise<{ cases: CaseSummary[] }> {
+export async function listCases(): Promise<{ cases: CaseSummary[] }> {
+  if (demoEnabled()) return { cases: demoListCases() };
   return request("/api/cases");
 }
 
-export function getCase(reportId: string): Promise<Case> {
+export async function getCase(reportId: string): Promise<Case> {
+  if (demoEnabled()) {
+    const found = demoGetCase(reportId);
+    if (!found) throw new ApiError(404, `case not found: ${reportId}`);
+    return found;
+  }
   return request(`/api/cases/${encodeURIComponent(reportId)}`);
 }
 

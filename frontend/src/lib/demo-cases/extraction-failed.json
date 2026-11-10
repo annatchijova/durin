@@ -1,0 +1,63 @@
+{
+  "authorization": null,
+  "createdAt": "2026-11-09T14:50:17.531648+00:00",
+  "extractionErrors": [
+    {
+      "error": "OpenAI request failed",
+      "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+      "sourceId": "435349c90d5019f57931a83c"
+    }
+  ],
+  "payoutRequest": null,
+  "payoutResponse": null,
+  "proposal": null,
+  "proposalDigest": null,
+  "report": {
+    "contradictions": [],
+    "execution": "NO_PAYMENT_SUBMITTED",
+    "extractedInvoices": [],
+    "extraction": {
+      "extractedCount": 0,
+      "extractorVersion": "openai-extractor-v1",
+      "missingExtractionCount": 1,
+      "rejectedExtractionCount": 0,
+      "requiresReviewCount": 1,
+      "sourceCount": 1
+    },
+    "flow": "PAYABLE",
+    "humanApprovalRequired": true,
+    "metrics": {
+      "excludedCount": 0,
+      "invoiceCount": 0,
+      "operationStateCounts": {},
+      "readyAmountsByCurrency": {},
+      "readyCount": 0,
+      "reasonCounts": {}
+    },
+    "observedAt": "2026-11-09T14:50:17.531648+00:00",
+    "policy": {
+      "approvalRequiredAbove": "0.00",
+      "approvedRecipients": [
+        "sb-tvhj053311436@personal.example.com"
+      ],
+      "baseCurrency": "USD",
+      "maxAmountPerBatch": "500.00",
+      "maxAmountPerPayment": "100.00",
+      "merchantName": "Durin Demo Merchant"
+    },
+    "reportId": "case-2026-11-09T145017531648z0000",
+    "rows": [],
+    "schemaVersion": 1,
+    "sourceManifest": [
+      {
+        "requiresReview": "true",
+        "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+        "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+        "sourceId": "435349c90d5019f57931a83c",
+        "validationStatus": "MISSING_EXTRACTION"
+      }
+    ]
+  },
+  "reportId": "case-2026-11-09T145017531648z0000",
+  "stage": "EXTRACTED"
+}

@@ -29,6 +29,25 @@ DURIN_API_URL=http://127.0.0.1:8010 npm run dev
 Then open http://127.0.0.1:3000, and run extraction against a source
 directory from the dashboard.
 
+## Recorded demo on a static host
+
+With `DURIN_DEMO_SNAPSHOT=1` (set on Vercel for production and preview) the
+app serves the three cases under `src/lib/demo-cases/` instead of calling
+`api_server.py`. They are unedited JSON files written by the API during real
+local runs on 2026-11-09 (OpenAI extraction, deterministic engine, PayPal
+sandbox payout); only the local scratch directory in source paths was
+replaced by `demo-sources/`. A banner says so on every page and every
+mutating action is refused with a message. Leave the variable unset locally
+so a backend that is merely down still shows the "backend not reachable"
+notice. `NEXT_PUBLIC_DURIN_SLIDES_URL` enables the slides link on the landing.
+
+## Export
+
+The case page and the dashboard export a CSV (`src/lib/export.ts`: one line
+per engine row, or one per case, with the stored fields only -- nothing is
+re-computed) and a PDF through the browser's print dialog over the print
+stylesheet in `globals.css`, the same approach as `/vertice`.
+
 ## Operational layer
 
 The journey is the evidence trail; around it sits a thin operational layer

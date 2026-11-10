@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { DATE_RANGES, VIEW_IDS, VIEW_PREDICATE, withinRange, type DateRange, type ViewId } from "@/lib/decision";
 import { CaseCard } from "./CaseCard";
 import { RunPipelineForm } from "./RunPipelineForm";
+import { ExportMenu } from "./ExportMenu";
+import { casesCsv } from "@/lib/export";
 
 const STAGES: CaseStage[] = ["EXTRACTED", "PROPOSED", "APPROVED", "SUBMITTED", "SUBMISSION_UNCERTAIN", "RECONCILED"];
 
@@ -40,9 +42,12 @@ export function DashboardView({ cases, initialView = "all" }: { cases: CaseSumma
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-[26px] font-semibold text-ink-900">{t("dashboard.title")}</h1>
-        <p className="mt-1 text-[14px] text-ink-500">{t("dashboard.subtitle")}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[26px] font-semibold text-ink-900">{t("dashboard.title")}</h1>
+          <p className="mt-1 text-[14px] text-ink-500">{t("dashboard.subtitle")}</p>
+        </div>
+        {cases.length > 0 && <ExportMenu filename="durin-cases" csv={() => casesCsv(visible)} />}
       </div>
 
       <RunPipelineForm />

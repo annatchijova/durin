@@ -91,12 +91,30 @@ def _now() -> str:
 
 
 def _load_policy() -> dict[str, Any]:
-    raw = os.environ.get("DURIN_POLICY_JSON", "")
+    """Merchant policy: inline JSON (``DURIN_POLICY_JSON``) or a JSON file
+    (``DURIN_POLICY_PATH``, relative paths resolved against this file's
+    directory). Inline wins when both are set. There is deliberately no
+    built-in default: a permissive policy invented by the server would be
+    a payment rule nobody approved."""
+    raw = os.environ.get("DURIN_POLICY_JSON", "").strip()
+    source = "DURIN_POLICY_JSON"
     if not raw:
-        raise HTTPException(500, "DURIN_POLICY_JSON is not configured")
-    policy = json.loads(raw)
+        path_raw = os.environ.get("DURIN_POLICY_PATH", "").strip()
+        if not path_raw:
+            raise HTTPException(500, "DURIN_POLICY_JSON is not configured (set it, or DURIN_POLICY_PATH to a policy file such as examples/level1/policy.json)")
+        path = Path(path_raw).expanduser()
+        if not path.is_absolute():
+            path = Path(__file__).resolve().parent / path
+        if not path.is_file():
+            raise HTTPException(500, f"DURIN_POLICY_PATH does not point to a file: {path}")
+        raw = path.read_text(encoding="utf-8")
+        source = "DURIN_POLICY_PATH"
+    try:
+        policy = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(500, f"{source} is not valid JSON: {exc.msg}") from exc
     if not isinstance(policy, dict):
-        raise HTTPException(500, "DURIN_POLICY_JSON must be an object")
+        raise HTTPException(500, f"{source} must be a JSON object")
     return policy
 
 

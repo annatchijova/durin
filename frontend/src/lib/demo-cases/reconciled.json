@@ -1,0 +1,407 @@
+{
+  "authorization": {
+    "approvedAt": "2026-11-09T14:51:23.262347+00:00",
+    "approverId": "anna@durin-frontend-test",
+    "authorizationId": "4474d1db8b2695ba06d20818",
+    "authorizationProof": "6481419ac427df0b71f3d3f38b8345c0a07a8954d44cf672c30baa25a717654e",
+    "execution": "NOT_EXECUTED",
+    "expiresAt": "2026-11-09T15:51:16.248960+00:00",
+    "proposalDigest": "bb6b37a8c140af662b7915bd9f4dbbc0fa7884577f92474f52f6fc9088793216",
+    "proposalId": "case-2026-11-09T145104827337z0000-proposal",
+    "status": "APPROVED"
+  },
+  "createdAt": "2026-11-09T14:51:04.827337+00:00",
+  "extractionErrors": [],
+  "normalizedPayout": {
+    "items": [
+      {
+        "error": null,
+        "payoutItemId": "GKW3PTSGV9PB6",
+        "providerStatus": "SUCCESS",
+        "reconciliationStatus": "COMPLETED",
+        "transactionId": "2PD054379F9331345"
+      }
+    ],
+    "payoutBatchId": "BUGEK4RVLGAKN",
+    "providerBatchStatus": "PROCESSING",
+    "reconciliationStatus": "PENDING_PROVIDER",
+    "settlementEvidence": "PAYPAL_PROVIDER_STATUS_ONLY"
+  },
+  "payoutRequest": {
+    "durin": {
+      "authorizationId": "4474d1db8b2695ba06d20818",
+      "execution": "NOT_SUBMITTED",
+      "observedAt": "2026-11-09T14:52:03.786013+00:00",
+      "proposalDigest": "bb6b37a8c140af662b7915bd9f4dbbc0fa7884577f92474f52f6fc9088793216"
+    },
+    "items": [
+      {
+        "amount": {
+          "currency": "USD",
+          "value": "42.50"
+        },
+        "note": "Durin approved supplier payout source-435349c90d5019f57931a83c",
+        "receiver": "sb-tvhj053311436@personal.example.com",
+        "recipient_type": "EMAIL",
+        "sender_item_id": "source-435349c90d5019f57931a83c"
+      }
+    ],
+    "sender_batch_header": {
+      "email_subject": "Durin approved supplier payout",
+      "recipient_type": "EMAIL",
+      "sender_batch_id": "durin-bb6b37a8c140af662b7915bd9f4dbbc0fa7884577f92474f"
+    }
+  },
+  "payoutResponse": {
+    "batch_header": {
+      "amount": {
+        "currency": "USD",
+        "value": "42.50"
+      },
+      "batch_status": "PROCESSING",
+      "fees": {
+        "currency": "USD",
+        "value": "0.85"
+      },
+      "funding_source": "BALANCE",
+      "payout_batch_id": "BUGEK4RVLGAKN",
+      "sender_batch_header": {
+        "email_subject": "Durin approved supplier payout",
+        "sender_batch_id": "durin-bb6b37a8c140af662b7915bd9f4dbbc0fa7884577f92474f"
+      },
+      "time_created": "2026-11-09T14:52:05Z"
+    },
+    "items": [
+      {
+        "activity_id": "6MM08249ML222943A",
+        "links": [
+          {
+            "encType": "application/json",
+            "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/GKW3PTSGV9PB6",
+            "method": "GET",
+            "rel": "item"
+          }
+        ],
+        "payout_batch_id": "BUGEK4RVLGAKN",
+        "payout_item": {
+          "amount": {
+            "currency": "USD",
+            "value": "42.50"
+          },
+          "note": "Durin approved supplier payout source-435349c90d5019f57931a83c",
+          "purpose": "GOODS",
+          "receiver": "sb-tvhj053311436@personal.example.com",
+          "recipient_type": "EMAIL",
+          "recipient_wallet": "PAYPAL",
+          "sender_item_id": "source-435349c90d5019f57931a83c"
+        },
+        "payout_item_fee": {
+          "currency": "USD",
+          "value": "0.85"
+        },
+        "payout_item_id": "GKW3PTSGV9PB6",
+        "time_processed": "2026-11-09T14:52:23Z",
+        "transaction_id": "2PD054379F9331345",
+        "transaction_status": "SUCCESS"
+      }
+    ],
+    "links": [
+      {
+        "encType": "application/json",
+        "href": "https://api.sandbox.paypal.com/v1/payments/payouts/BUGEK4RVLGAKN?page_size=1000&page=1",
+        "method": "GET",
+        "rel": "self"
+      }
+    ]
+  },
+  "proposal": {
+    "createdAt": "2026-11-09T14:51:16.248930+00:00",
+    "currency": "USD",
+    "evidenceRefs": [
+      "source-435349c90d5019f57931a83c"
+    ],
+    "execution": "NO_PAYMENT_SUBMITTED",
+    "expiresAt": "2026-11-09T15:51:16.248960+00:00",
+    "flow": "PAYABLE",
+    "items": [
+      {
+        "action": "READY_FOR_REVIEW",
+        "amount": "42.50",
+        "approvalRequired": true,
+        "currency": "USD",
+        "invoiceId": "source-435349c90d5019f57931a83c",
+        "invoiceNumber": "GLX-2026-001",
+        "recipient": "sb-tvhj053311436@personal.example.com",
+        "supplier": "Globex Supplies"
+      }
+    ],
+    "policyVersion": "policy-4460",
+    "proposalId": "case-2026-11-09T145104827337z0000-proposal",
+    "schemaVersion": 1,
+    "status": "PENDING_APPROVAL",
+    "totalAmount": "42.50"
+  },
+  "proposalDigest": "bb6b37a8c140af662b7915bd9f4dbbc0fa7884577f92474f52f6fc9088793216",
+  "reconciledRows": [
+    {
+      "amount": "42.50",
+      "checks": [
+        {
+          "detail": "no duplicate in batch",
+          "key": "unique",
+          "status": "pass"
+        },
+        {
+          "detail": "approved",
+          "key": "recipient",
+          "status": "pass"
+        },
+        {
+          "detail": "42.50 <= 100.00",
+          "key": "limit",
+          "status": "pass"
+        },
+        {
+          "detail": "no comparable history",
+          "key": "price",
+          "status": "pass"
+        },
+        {
+          "detail": "due 2026-12-20",
+          "key": "due_date",
+          "status": "pass"
+        }
+      ],
+      "currency": "USD",
+      "dueDate": "2026-12-20",
+      "invoiceId": "source-435349c90d5019f57931a83c",
+      "invoiceNumber": "GLX-2026-001",
+      "operationIds": [
+        "2PD054379F9331345"
+      ],
+      "operationState": "SUCCESS",
+      "reasons": [],
+      "recipient": "sb-tvhj053311436@personal.example.com",
+      "status": "READY_FOR_REVIEW",
+      "supplier": "Globex Supplies"
+    }
+  ],
+  "report": {
+    "contradictions": [],
+    "execution": "NO_PAYMENT_SUBMITTED",
+    "extractedInvoices": [
+      {
+        "amount": "42.50",
+        "concept": "Office supplies",
+        "currency": "USD",
+        "dueDate": "2026-12-20",
+        "invoiceId": "source-435349c90d5019f57931a83c",
+        "invoiceNumber": "GLX-2026-001",
+        "provenance": {
+          "amount": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Amount: 42.50 USD",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "amount",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+              "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+              "sourceId": "435349c90d5019f57931a83c",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "42.50"
+          },
+          "concept": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Concept: Office supplies",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "concept",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+              "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+              "sourceId": "435349c90d5019f57931a83c",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "Office supplies"
+          },
+          "currency": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Amount: 42.50 USD",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "currency",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+              "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+              "sourceId": "435349c90d5019f57931a83c",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "USD"
+          },
+          "dueDate": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Due Date: 2026-12-20",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "dueDate",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+              "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+              "sourceId": "435349c90d5019f57931a83c",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "2026-12-20"
+          },
+          "invoiceNumber": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Invoice Number: GLX-2026-001",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "invoiceNumber",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+              "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+              "sourceId": "435349c90d5019f57931a83c",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "GLX-2026-001"
+          },
+          "recipient": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Recipient (PayPal): sb-tvhj053311436@personal.example.com",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "recipient",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+              "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+              "sourceId": "435349c90d5019f57931a83c",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "sb-tvhj053311436@personal.example.com"
+          },
+          "supplier": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Supplier: Globex Supplies",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "supplier",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+              "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+              "sourceId": "435349c90d5019f57931a83c",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "Globex Supplies"
+          }
+        },
+        "recipient": "sb-tvhj053311436@personal.example.com",
+        "requiresReview": false,
+        "supplier": "Globex Supplies"
+      }
+    ],
+    "extraction": {
+      "extractedCount": 1,
+      "extractorVersion": "openai-extractor-v1",
+      "missingExtractionCount": 0,
+      "rejectedExtractionCount": 0,
+      "requiresReviewCount": 0,
+      "sourceCount": 1
+    },
+    "flow": "PAYABLE",
+    "humanApprovalRequired": true,
+    "metrics": {
+      "excludedCount": 0,
+      "invoiceCount": 1,
+      "operationStateCounts": {
+        "UNMATCHED": 1
+      },
+      "readyAmountsByCurrency": {
+        "USD": "42.50"
+      },
+      "readyCount": 1,
+      "reasonCounts": {}
+    },
+    "observedAt": "2026-11-09T14:51:04.827337+00:00",
+    "policy": {
+      "approvalRequiredAbove": "0.00",
+      "approvedRecipients": [
+        "sb-tvhj053311436@personal.example.com"
+      ],
+      "baseCurrency": "USD",
+      "maxAmountPerBatch": "500.00",
+      "maxAmountPerPayment": "100.00",
+      "merchantName": "Durin Demo Merchant"
+    },
+    "reportId": "case-2026-11-09T145104827337z0000",
+    "rows": [
+      {
+        "amount": "42.50",
+        "checks": [
+          {
+            "detail": "no duplicate in batch",
+            "key": "unique",
+            "status": "pass"
+          },
+          {
+            "detail": "approved",
+            "key": "recipient",
+            "status": "pass"
+          },
+          {
+            "detail": "42.50 <= 100.00",
+            "key": "limit",
+            "status": "pass"
+          },
+          {
+            "detail": "no comparable history",
+            "key": "price",
+            "status": "pass"
+          },
+          {
+            "detail": "due 2026-12-20",
+            "key": "due_date",
+            "status": "pass"
+          }
+        ],
+        "currency": "USD",
+        "dueDate": "2026-12-20",
+        "invoiceId": "source-435349c90d5019f57931a83c",
+        "invoiceNumber": "GLX-2026-001",
+        "operationState": "UNMATCHED",
+        "reasons": [],
+        "recipient": "sb-tvhj053311436@personal.example.com",
+        "status": "READY_FOR_REVIEW",
+        "supplier": "Globex Supplies"
+      }
+    ],
+    "schemaVersion": 1,
+    "sourceManifest": [
+      {
+        "requiresReview": "false",
+        "source": "demo-sources/mcp_flow_test/invoice_clean.txt",
+        "sourceHash": "435349c90d5019f57931a83cb5451ffcd781f371ca77531e2106e4336d85b496",
+        "sourceId": "435349c90d5019f57931a83c",
+        "validationStatus": "EXTRACTED"
+      }
+    ]
+  },
+  "reportId": "case-2026-11-09T145104827337z0000",
+  "stage": "RECONCILED"
+}

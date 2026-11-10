@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import type { Case } from "@/lib/types";
 import { formatDate, formatMoney, shortHash } from "@/lib/utils";
@@ -15,6 +16,8 @@ import { FieldEvidence } from "./FieldEvidence";
 import { StateBadge } from "./StateBadge";
 import { ActionButton } from "./ActionButton";
 import { ApproveForm } from "./ApproveForm";
+import { ExportMenu } from "./ExportMenu";
+import { caseRowsCsv, fileStamp } from "@/lib/export";
 
 const STAGE_ORDER = ["EXTRACTED", "PROPOSED", "APPROVED", "SUBMITTED", "SUBMISSION_UNCERTAIN", "RECONCILED"];
 
@@ -47,8 +50,9 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
           <h1 className="text-[24px] font-semibold text-ink-900">{t("journey.title")}</h1>
           <span className="text-[13px] text-ink-500">{formatDate(caseData.createdAt, lang)}</span>
         </div>
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <ActorLegend />
+          <ExportMenu filename={`durin-case-${fileStamp(caseData.createdAt)}`} csv={() => caseRowsCsv(caseData)} />
         </div>
       </div>
 
@@ -87,7 +91,25 @@ export function CaseJourneyView({ caseData }: { caseData: Case }) {
               ))}
               {caseData.extractionErrors.length > 0 && (
                 <div className="rounded-xl bg-state-exceptionBg/60 px-3 py-2 text-[12.5px] text-state-exception">
-                  {caseData.extractionErrors.length} {t("journey.step2.rejectedNote")}
+                  <p className="font-semibold">
+                    {caseData.extractionErrors.length} {t("journey.step2.rejectedNote")}
+                  </p>
+                  <ul className="m-0 mt-1.5 flex list-none flex-col gap-1 p-0">
+                    {caseData.extractionErrors.map((failure) => (
+                      <li key={failure.sourceId} className="flex flex-wrap gap-x-2 [overflow-wrap:anywhere]">
+                        <span className="font-mono text-[11.5px]">{failure.source.split("/").pop()}</span>
+                        <span>{failure.error}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {report.extractedInvoices.length === 0 && (
+                <div className="rounded-xl border border-ink-900/[0.08] bg-white p-4 text-[13px] text-ink-700">
+                  <p>{t("journey.step2.nothingExtracted")}</p>
+                  <Link href="/cases" className="btn-primary mt-3 inline-flex min-h-[38px] items-center rounded-full px-4 text-[13px] font-semibold">
+                    {t("journey.step2.runAgain")}
+                  </Link>
                 </div>
               )}
             </div>

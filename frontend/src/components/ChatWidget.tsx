@@ -80,7 +80,7 @@ export function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+    <div className="print-hidden fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {open && (
         <div
           id="durin-chat-panel"
@@ -196,7 +196,7 @@ export function ChatWidget() {
         aria-expanded={open}
         aria-controls="durin-chat-panel"
         className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-full shadow-lift transition-transform hover:scale-105",
+          "flex h-14 w-14 items-center justify-center rounded-full shadow-lift transition-transform hover:scale-105 sm:h-12 sm:w-12",
           open ? "bg-ink-900 text-white" : "btn-primary",
         )}
       >

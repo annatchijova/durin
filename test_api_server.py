@@ -192,5 +192,38 @@ class ChatEndpointTests(unittest.TestCase):
         self.assertIn("No matching", body["answer"])
 
 
+class PolicyLoadingTests(unittest.TestCase):
+    """_load_policy accepts inline JSON or a file path and never invents a default."""
+
+    def test_missing_policy_is_a_configuration_error(self):
+        import api_server
+        from fastapi import HTTPException
+        with patch.dict("os.environ", {"DURIN_POLICY_JSON": "", "DURIN_POLICY_PATH": ""}, clear=False):
+            with self.assertRaises(HTTPException) as raised:
+                api_server._load_policy()
+        self.assertEqual(raised.exception.status_code, 500)
+        self.assertIn("DURIN_POLICY_PATH", raised.exception.detail)
+
+    def test_policy_path_relative_to_repo_root(self):
+        import api_server
+        with patch.dict("os.environ", {"DURIN_POLICY_JSON": "", "DURIN_POLICY_PATH": "examples/level1/policy.json"}, clear=False):
+            policy = api_server._load_policy()
+        self.assertEqual(policy["merchantName"], "Durin Demo Merchant")
+
+    def test_inline_json_wins_over_path(self):
+        import api_server
+        with patch.dict("os.environ", {"DURIN_POLICY_JSON": POLICY, "DURIN_POLICY_PATH": "examples/level1/policy.json"}, clear=False):
+            policy = api_server._load_policy()
+        self.assertEqual(policy["merchantName"], "Durin API Test")
+
+    def test_policy_path_to_missing_file_is_reported(self):
+        import api_server
+        from fastapi import HTTPException
+        with patch.dict("os.environ", {"DURIN_POLICY_JSON": "", "DURIN_POLICY_PATH": "examples/does-not-exist.json"}, clear=False):
+            with self.assertRaises(HTTPException) as raised:
+                api_server._load_policy()
+        self.assertIn("does not point to a file", raised.exception.detail)
+
+
 if __name__ == "__main__":
     unittest.main()

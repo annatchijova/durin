@@ -1,0 +1,418 @@
+{
+  "authorization": null,
+  "createdAt": "2026-11-09T15:01:36.998087+00:00",
+  "extractionErrors": [],
+  "payoutRequest": null,
+  "payoutResponse": null,
+  "proposal": null,
+  "proposalDigest": null,
+  "report": {
+    "contradictions": [],
+    "execution": "NO_PAYMENT_SUBMITTED",
+    "extractedInvoices": [
+      {
+        "amount": "450.00",
+        "concept": "Monthly consulting services",
+        "currency": "USD",
+        "dueDate": "2026-12-01",
+        "invoiceId": "source-cae4c58db11b56efb161a897",
+        "invoiceNumber": "INV-100",
+        "provenance": {
+          "amount": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "450.00",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "amount",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/email_acme_correction.txt",
+              "sourceHash": "cae4c58db11b56efb161a897ec7560889303c657e593b0dd8daf71873532fd68",
+              "sourceId": "cae4c58db11b56efb161a897",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "450.00"
+          },
+          "concept": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Monthly consulting services",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "concept",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/email_acme_correction.txt",
+              "sourceHash": "cae4c58db11b56efb161a897ec7560889303c657e593b0dd8daf71873532fd68",
+              "sourceId": "cae4c58db11b56efb161a897",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "Monthly consulting services"
+          },
+          "currency": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "USD",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "currency",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/email_acme_correction.txt",
+              "sourceHash": "cae4c58db11b56efb161a897ec7560889303c657e593b0dd8daf71873532fd68",
+              "sourceId": "cae4c58db11b56efb161a897",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "USD"
+          },
+          "dueDate": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "2026-12-01",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "dueDate",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/email_acme_correction.txt",
+              "sourceHash": "cae4c58db11b56efb161a897ec7560889303c657e593b0dd8daf71873532fd68",
+              "sourceId": "cae4c58db11b56efb161a897",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "2026-12-01"
+          },
+          "invoiceNumber": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "INV-100",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "invoiceNumber",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/email_acme_correction.txt",
+              "sourceHash": "cae4c58db11b56efb161a897ec7560889303c657e593b0dd8daf71873532fd68",
+              "sourceId": "cae4c58db11b56efb161a897",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "INV-100"
+          },
+          "recipient": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Acme Corp",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "recipient",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/email_acme_correction.txt",
+              "sourceHash": "cae4c58db11b56efb161a897ec7560889303c657e593b0dd8daf71873532fd68",
+              "sourceId": "cae4c58db11b56efb161a897",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "Acme Corp"
+          },
+          "supplier": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "acme@paypal.com",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "supplier",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/email_acme_correction.txt",
+              "sourceHash": "cae4c58db11b56efb161a897ec7560889303c657e593b0dd8daf71873532fd68",
+              "sourceId": "cae4c58db11b56efb161a897",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "acme@paypal.com"
+          }
+        },
+        "recipient": "Acme Corp",
+        "requiresReview": false,
+        "supplier": "acme@paypal.com"
+      },
+      {
+        "amount": "500.00",
+        "concept": "Monthly consulting services",
+        "currency": "USD",
+        "dueDate": "2026-12-01",
+        "invoiceId": "source-5650a1f2fbbd06b95519dc77",
+        "invoiceNumber": "INV-100",
+        "provenance": {
+          "amount": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "500.00",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "amount",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/invoice_acme.txt",
+              "sourceHash": "5650a1f2fbbd06b95519dc7792331be35521b0d24a08262297e68125ec3fd488",
+              "sourceId": "5650a1f2fbbd06b95519dc77",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "500.00"
+          },
+          "concept": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Monthly consulting services",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "concept",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/invoice_acme.txt",
+              "sourceHash": "5650a1f2fbbd06b95519dc7792331be35521b0d24a08262297e68125ec3fd488",
+              "sourceId": "5650a1f2fbbd06b95519dc77",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "Monthly consulting services"
+          },
+          "currency": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "USD",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "currency",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/invoice_acme.txt",
+              "sourceHash": "5650a1f2fbbd06b95519dc7792331be35521b0d24a08262297e68125ec3fd488",
+              "sourceId": "5650a1f2fbbd06b95519dc77",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "USD"
+          },
+          "dueDate": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "2026-12-01",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "dueDate",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/invoice_acme.txt",
+              "sourceHash": "5650a1f2fbbd06b95519dc7792331be35521b0d24a08262297e68125ec3fd488",
+              "sourceId": "5650a1f2fbbd06b95519dc77",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "2026-12-01"
+          },
+          "invoiceNumber": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "INV-100",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "invoiceNumber",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/invoice_acme.txt",
+              "sourceHash": "5650a1f2fbbd06b95519dc7792331be35521b0d24a08262297e68125ec3fd488",
+              "sourceId": "5650a1f2fbbd06b95519dc77",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "INV-100"
+          },
+          "recipient": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "acme@paypal.com",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "recipient",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/invoice_acme.txt",
+              "sourceHash": "5650a1f2fbbd06b95519dc7792331be35521b0d24a08262297e68125ec3fd488",
+              "sourceId": "5650a1f2fbbd06b95519dc77",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "acme@paypal.com"
+          },
+          "supplier": {
+            "provenance": {
+              "confidenceSignal": "UNSPECIFIED",
+              "evidenceExcerpt": "Acme Corp",
+              "extractionMethod": "AI_STRUCTURED_EXTRACTION",
+              "extractorVersion": "openai-extractor-v1",
+              "fieldName": "supplier",
+              "observedAt": null,
+              "requiresReview": false,
+              "source": "demo-sources/ai_extraction_test/invoice_acme.txt",
+              "sourceHash": "5650a1f2fbbd06b95519dc7792331be35521b0d24a08262297e68125ec3fd488",
+              "sourceId": "5650a1f2fbbd06b95519dc77",
+              "validationStatus": "SUPPORTED"
+            },
+            "value": "Acme Corp"
+          }
+        },
+        "recipient": "acme@paypal.com",
+        "requiresReview": false,
+        "supplier": "Acme Corp"
+      }
+    ],
+    "extraction": {
+      "extractedCount": 2,
+      "extractorVersion": "openai-extractor-v1",
+      "missingExtractionCount": 0,
+      "rejectedExtractionCount": 0,
+      "requiresReviewCount": 0,
+      "sourceCount": 2
+    },
+    "flow": "PAYABLE",
+    "humanApprovalRequired": true,
+    "metrics": {
+      "excludedCount": 2,
+      "invoiceCount": 2,
+      "operationStateCounts": {
+        "UNMATCHED": 2
+      },
+      "readyAmountsByCurrency": {},
+      "readyCount": 0,
+      "reasonCounts": {
+        "CONFLICTING_SUPPLIER_IDENTITY": 2,
+        "EXCEEDS_PER_PAYMENT_LIMIT": 2,
+        "RECIPIENT_NOT_APPROVED": 2
+      }
+    },
+    "observedAt": "2026-11-09T15:01:36.998087+00:00",
+    "policy": {
+      "approvalRequiredAbove": "0.00",
+      "approvedRecipients": [
+        "sb-tvhj053311436@personal.example.com"
+      ],
+      "baseCurrency": "USD",
+      "maxAmountPerBatch": "500.00",
+      "maxAmountPerPayment": "100.00",
+      "merchantName": "Durin Demo Merchant"
+    },
+    "reportId": "case-2026-11-09T150136998087z0000",
+    "rows": [
+      {
+        "amount": "450.00",
+        "checks": [
+          {
+            "detail": "no duplicate in batch",
+            "key": "unique",
+            "status": "pass"
+          },
+          {
+            "detail": "not approved",
+            "key": "recipient",
+            "status": "fail"
+          },
+          {
+            "detail": "450.00 > 100.00",
+            "key": "limit",
+            "status": "fail"
+          },
+          {
+            "detail": "no comparable history",
+            "key": "price",
+            "status": "pass"
+          },
+          {
+            "detail": "due 2026-12-01",
+            "key": "due_date",
+            "status": "pass"
+          },
+          {
+            "detail": "invoice number belongs to multiple suppliers",
+            "key": "supplier_identity",
+            "status": "fail"
+          }
+        ],
+        "currency": "USD",
+        "dueDate": "2026-12-01",
+        "invoiceId": "source-cae4c58db11b56efb161a897",
+        "invoiceNumber": "INV-100",
+        "operationState": "UNMATCHED",
+        "reasons": [
+          "RECIPIENT_NOT_APPROVED",
+          "EXCEEDS_PER_PAYMENT_LIMIT",
+          "CONFLICTING_SUPPLIER_IDENTITY"
+        ],
+        "recipient": "Acme Corp",
+        "status": "EXCLUDED",
+        "supplier": "acme@paypal.com"
+      },
+      {
+        "amount": "500.00",
+        "checks": [
+          {
+            "detail": "no duplicate in batch",
+            "key": "unique",
+            "status": "pass"
+          },
+          {
+            "detail": "not approved",
+            "key": "recipient",
+            "status": "fail"
+          },
+          {
+            "detail": "500.00 > 100.00",
+            "key": "limit",
+            "status": "fail"
+          },
+          {
+            "detail": "no comparable history",
+            "key": "price",
+            "status": "pass"
+          },
+          {
+            "detail": "due 2026-12-01",
+            "key": "due_date",
+            "status": "pass"
+          },
+          {
+            "detail": "invoice number belongs to multiple suppliers",
+            "key": "supplier_identity",
+            "status": "fail"
+          }
+        ],
+        "currency": "USD",
+        "dueDate": "2026-12-01",
+        "invoiceId": "source-5650a1f2fbbd06b95519dc77",
+        "invoiceNumber": "INV-100",
+        "operationState": "UNMATCHED",
+        "reasons": [
+          "RECIPIENT_NOT_APPROVED",
+          "EXCEEDS_PER_PAYMENT_LIMIT",
+          "CONFLICTING_SUPPLIER_IDENTITY"
+        ],
+        "recipient": "acme@paypal.com",
+        "status": "EXCLUDED",
+        "supplier": "Acme Corp"
+      }
+    ],
+    "schemaVersion": 1,
+    "sourceManifest": [
+      {
+        "requiresReview": "false",
+        "source": "demo-sources/ai_extraction_test/email_acme_correction.txt",
+        "sourceHash": "cae4c58db11b56efb161a897ec7560889303c657e593b0dd8daf71873532fd68",
+        "sourceId": "cae4c58db11b56efb161a897",
+        "validationStatus": "EXTRACTED"
+      },
+      {
+        "requiresReview": "false",
+        "source": "demo-sources/ai_extraction_test/invoice_acme.txt",
+        "sourceHash": "5650a1f2fbbd06b95519dc7792331be35521b0d24a08262297e68125ec3fd488",
+        "sourceId": "5650a1f2fbbd06b95519dc77",
+        "validationStatus": "EXTRACTED"
+      }
+    ]
+  },
+  "reportId": "case-2026-11-09T150136998087z0000",
+  "stage": "EXTRACTED"
+}

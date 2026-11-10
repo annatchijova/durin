@@ -31,6 +31,107 @@ h2 {
   min-height: 100vh;
 }
 
+/* ---------------------------------------------------------------- landing
+   The night sea (NightSeaCanvas) is fixed behind the whole landing; the
+   section breaks out of <main>'s width and padding so the water reaches the
+   viewport edges, and the text layer is laid out like /vertice's start page
+   (masthead question, lede, stamps, colophon) in light ink on the dark sea. */
+.landing-scene {
+  position: relative;
+  isolation: isolate;
+  margin: -2rem calc(50% - 50vw) -2rem;
+  min-height: calc(100dvh - 60px);
+  padding: 2.5rem max(1.25rem, calc((100vw - 72rem) / 2)) 2rem;
+  background: #030914;
+  color: #f3f7ff;
+  overflow: hidden;
+}
+.night-sea-canvas { position: fixed; inset: 0; z-index: -1; display: block; }
+.landing-content { position: relative; z-index: 1; }
+.landing-scene h1, .landing-scene h2, .landing-scene h3, .landing-scene p { color: #f3f7ff; }
+.landing-muted, .landing-scene .landing-muted { color: #b9cde3; }
+.landing-scene .card-solid { background: rgba(6, 20, 38, 0.72); border-color: rgba(160, 210, 245, 0.18); backdrop-filter: blur(6px); }
+.landing-scene .btn-ghost { background: rgba(6, 20, 38, 0.6); color: #eef7ff; border-color: rgba(180, 220, 245, 0.35); }
+.landing-scene .btn-ghost:hover { background: rgba(140, 190, 230, 0.18); border-color: rgba(180, 220, 245, 0.7); }
+
+.landing-hero { display: grid; gap: 2.5rem 3rem; align-items: start; padding: 1.5rem 0 2.5rem; }
+@media (min-width: 62rem) { .landing-hero { grid-template-columns: minmax(0, 1fr) 20rem; } }
+.landing-hero-main { max-width: 52rem; min-width: 0; }
+.landing-eyebrow {
+  font: 600 0.75rem/1.2 var(--font-inter), system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8fb8d8 !important;
+  margin: 0 0 0.75rem;
+}
+.landing-title {
+  font-family: var(--font-display), "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.75rem, 8.5vw, 5.5rem);
+  line-height: 0.94;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  margin: 0 0 1.25rem;
+  text-shadow: 0 0 28px rgba(80, 140, 220, 0.35);
+}
+.landing-title-accent { color: #9fd4ff; }
+.landing-lede { font-size: 1.125rem; line-height: 1.55; max-width: 40rem; margin: 0 0 1.75rem; color: #e6f0fb !important; }
+.landing-links { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.landing-link { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0 1.25rem; border-radius: 999px; font-size: 0.875rem; font-weight: 700; }
+.landing-link-disabled { opacity: 0.55; cursor: not-allowed; }
+.landing-fine { color: #8fb8d8 !important; font-size: 0.8125rem; line-height: 1.5; max-width: 40rem; margin: 1.5rem 0 0; }
+.landing-outcomes { padding-top: 0.25rem; }
+.landing-stamp {
+  display: inline-block;
+  margin: 0.25rem 0 0 0.25rem;
+  padding: 0.3em 0.55em 0.25em;
+  font-family: var(--font-display), "Arial Narrow", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.375rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 0.1em solid currentColor;
+  outline: 0.035em solid currentColor;
+  outline-offset: 0.1em;
+  transform: rotate(-2deg);
+}
+.landing-stamp[data-verdict="ready"] { color: #6fd39a !important; }
+.landing-stamp[data-verdict="exception"] { color: #ff9a9a !important; }
+.landing-stamp[data-verdict="review"] { color: #e8b85f !important; }
+.landing-outcome-text { margin: 0.5rem 0 0 0.25rem; color: #b9cde3 !important; font-size: 0.9375rem; line-height: 1.45; }
+.landing-hint { color: #8fb8d8 !important; font-size: 0.875rem; line-height: 1.5; margin: 1.25rem 0 0; }
+.landing-colophon { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid rgba(160, 210, 245, 0.18); font-size: 0.8125rem; color: #8fb8d8; }
+.landing-colophon p { color: #8fb8d8 !important; }
+.landing-colophon a { color: #9fd4ff; text-decoration: underline; text-underline-offset: 3px; display: inline-block; min-height: 1.5rem; }
+
+/* A step heading reached from the decision summary is highlighted, so the
+   click has a visible effect even when the page had no room to scroll. */
+h2:target, h3:target, h2:focus-visible, h3:focus-visible {
+  outline: 2px solid #0070e0;
+  outline-offset: 6px;
+  border-radius: 4px;
+  animation: target-flash 1.8s ease-out;
+}
+@keyframes target-flash {
+  0% { background-color: rgba(0, 112, 224, 0.18); }
+  100% { background-color: transparent; }
+}
+
+/* ---------------------------------------------------------------- print
+   "Save as PDF" is the browser's print dialog over this stylesheet: chrome
+   and controls go, the stored case stays, laid out in one column. */
+@media print {
+  .print-hidden, .nav-glass, .night-sea-canvas, button, form, select { display: none !important; }
+  body, .app-bg { background: #fff !important; color: #000; }
+  main { max-width: none; padding: 0; }
+  .card-solid { box-shadow: none !important; border: 1px solid #bbb; break-inside: avoid; }
+  aside { position: static !important; max-height: none !important; overflow: visible !important; }
+  .lg\:grid-cols-\[minmax\(0\,1fr\)_320px\] { grid-template-columns: 1fr !important; }
+  details { break-inside: avoid; }
+  a { text-decoration: none; color: inherit; }
+}
+
 .card-solid {
   background: #fff;
   border: 1px solid rgba(11, 18, 32, 0.07);
