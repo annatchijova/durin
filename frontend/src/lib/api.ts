@@ -19,7 +19,11 @@ class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    // ngrok-skip-browser-warning: harmless against a real deployment, but
+    // required when DURIN_API_URL points at an ngrok tunnel (used for a
+    // provisional preview before a real backend host is set up) -- without
+    // it, ngrok's free tier can serve an HTML interstitial instead of JSON.
+    headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true", ...(init?.headers ?? {}) },
     cache: "no-store",
   });
   if (!response.ok) {
