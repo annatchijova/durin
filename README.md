@@ -1,5 +1,7 @@
 # Durin
 
+![Durin](visual/logo.png)
+
 Durin is an AI-assisted financial operations workspace for merchants who need to
 understand their PayPal activity, reconcile it with invoices and payment terms,
 and keep payment authorization under explicit human control.
@@ -153,6 +155,28 @@ python3 scripts/paypal_preflight.py
 The preflight performs no network request and sends no transaction. Live
 Sandbox execution still requires explicit merchant authorization and provider
 lookup/recovery handling.
+
+## Screenshots
+
+**The landing page**, over the night-sea canvas, stating the problem and the three
+outcomes every invoice ends in:
+
+![Landing page](visual/landing.png)
+
+**The dashboard**, each tile's count the length of the list its own filter
+produces, with CSV and PDF export:
+
+![Dashboard](visual/dashboard.png)
+
+**A case excluded** for a recipient the merchant never approved and a supplier
+identity conflict across sources, with the check that excluded it, not a guess:
+
+![Case with exceptions](visual/case-exceptions.png)
+
+**A case reconciled**: the sealed proposal digest, the human authorization, and
+the real PayPal Sandbox payout batch read back item by item:
+
+![Reconciled case](visual/case-reconciled.png)
 
 ## License
 
