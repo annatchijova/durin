@@ -62,6 +62,9 @@ Durin gives a merchant one controlled operations workflow:
 5. Durin reports ready, blocked, pending, returned, unmatched, and ambiguous cases.
 6. The merchant reviews any operation that requires approval; PayPal remains the
    source of provider activity.
+7. A chat answers "did we pay \[supplier\] around \[amount\] a few months ago?"
+   against the merchant's real PayPal transaction history -- see
+   [docs/TRANSACTION_CHAT.md](docs/TRANSACTION_CHAT.md).
 
 The agent prepares and explains the work. The merchant remains the authority for
 any monetary action.
@@ -198,6 +201,12 @@ identity conflict across sources, with the check that excluded it, not a guess:
 the real PayPal Sandbox payout batch read back item by item:
 
 ![Reconciled case](visual/case-reconciled.png)
+
+**The transaction chat**, answering "find payments near USD 450" against the
+merchant's real PayPal transaction history -- scanning 18 real transactions over
+6 months and honestly reporting no match, instead of guessing one:
+
+![Transaction chat](visual/chat.png)
 
 ## License
 
