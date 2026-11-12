@@ -12,6 +12,27 @@ an invoice, or an AI explanation says that it happened. The evidence and the
 merchant's rules must support the conclusion before PayPal activity is treated
 as financially matched.
 
+## Run locally
+
+Requires Python 3.11+ and Node.js 20+.
+
+```shell
+# 1. Python backend (repo root) -- the only process holding PayPal/OpenAI credentials
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # fill in PayPal Sandbox keys to test checkout; the rest works without them
+set -a; . ./.env; set +a
+python3 -m uvicorn api_server:app --host 127.0.0.1 --port 8010
+
+# 2. Frontend, in a second terminal
+cd frontend
+npm install
+DURIN_API_URL=http://127.0.0.1:8010 npm run dev
+```
+
+Open `http://127.0.0.1:3000`. See [`frontend/README.md`](frontend/README.md) for
+the no-backend demo-snapshot mode, tests, and the frontend's own design notes.
+
 ## The merchant problem
 
 Small and mid-sized merchants receive invoices, contracts, and payment
